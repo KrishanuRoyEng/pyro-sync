@@ -1,0 +1,33 @@
+# Dependencies
+node_modules
+/.pnp
+.pnp.js
+
+# Testing
+/coverage
+
+# Next.js
+/.next/
+/out/
+
+# Production
+/build
+
+# Misc
+.DS_Store
+*.pem
+*.tsbuildinfo
+next-env.d.ts
+
+# Python / Environment
+.venv/
+__pycache__/
+*.pyc
+
+# Raw data & scripts
+raw/
+scripts/request_firms.py
+
+# Local env files - NEVER COMMIT
+.env*.local
+.env
