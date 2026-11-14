@@ -1,7 +1,16 @@
 import { latLngToCell, gridDisk } from "h3-js";
 
 export type Sensor = "MODIS" | "VIIRS";
-export interface Detection { lat: number; lon: number; frp: number; sensor: Sensor; sat: string; day: number }
+export interface Detection {
+  lat: number;
+  lon: number;
+  frp: number;
+  sensor: Sensor;
+  sat: string;
+  day: number;
+  count?: number;
+  hex?: string;
+}
 export interface Params { res: 5 | 6 | 7; viirsCutoff: number; normalize: boolean; harmonize: boolean }
 export interface HexCell { hex: string; count: number; frp: number; density: number }
 export interface WeekStat { raw: number; index: number; frp: number; cells: number }
@@ -35,25 +44,35 @@ export const satellitesActive = (year: number, week?: number) => {
  * harmonize=false returns the raw point count.
  */
 export function harmonizeWeek(dets: Detection[], nSat: number, p: Params): { stat: WeekStat; hexes: HexCell[] } {
-  const groups = new Map<string, { hex: string; sensor: Sensor; frp: number }>();
+  const groups = new Map<string, { hex: string; sensor: Sensor; frp: number; count: number }>();
   for (const d of dets) {
-    const hex = latLngToCell(d.lat, d.lon, p.res);
+    const hex = d.hex && p.res === 7 ? d.hex : latLngToCell(d.lat, d.lon, p.res);
     const key = `${hex}|${d.day}|${d.sat}`;
     const g = groups.get(key);
-    if (g) g.frp += d.frp; else groups.set(key, { hex, sensor: d.sensor, frp: d.frp });
+    const cnt = d.count ?? 1;
+    if (g) {
+      g.frp += d.frp;
+      g.count += cnt;
+    } else {
+      groups.set(key, { hex, sensor: d.sensor, frp: d.frp, count: cnt });
+    }
   }
   const div = p.normalize ? Math.max(1, nSat) : 1;
   const perHex = new Map<string, { count: number; frp: number }>();
   let frp = 0, cells = 0;
+  let totalRaw = 0;
   for (const g of groups.values()) {
+    totalRaw += g.count;
     if (p.harmonize && g.sensor === "VIIRS" && g.frp < p.viirsCutoff) continue;
     frp += g.frp; cells++;
     const h = perHex.get(g.hex) ?? { count: 0, frp: 0 };
-    h.count++; h.frp += g.frp; perHex.set(g.hex, h);
+    h.count += (p.harmonize ? 1 : g.count);
+    h.frp += g.frp;
+    perHex.set(g.hex, h);
   }
   const area = HEX_AREA_KM2[p.res];
   const hexes: HexCell[] = [...perHex].map(([hex, h]) => ({ hex, count: h.count / div, frp: h.frp / div, density: h.frp / div / area }));
-  const raw = dets.length;
+  const raw = totalRaw;
   const stat: WeekStat = p.harmonize ? { raw, index: frp / div, frp, cells } : { raw, index: raw / div, frp: 0, cells: raw };
   return { stat, hexes };
 }

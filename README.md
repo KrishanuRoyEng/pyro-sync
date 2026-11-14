@@ -2,47 +2,67 @@
 
 Harmonized MODIS + VIIRS burning activity calendar (NASA Space Apps 2026).
 
-    npm install && cp .env.local.example .env.local   # add FIRMS_MAP_KEY
-    npm run dev          # http://localhost:3000
-    npm test && npm run typecheck && npm run build
+```bash
+npm install && cp .env.local.example .env.local   # add FIRMS_MAP_KEY
+npm run dev          # http://localhost:3000
+npm test && npm run typecheck && npm run build
+```
 
-## Method (deterministic, no LLM in the numeric path)
-1. Snap detections to H3 cells; group by (cell, day, satellite) to undo VIIRS pixel fragmentation.
-2. Apply the VIIRS FRP cutoff to the cell total so VIIRS matches MODIS's minimum detectable fire.
-3. Sum FRP, divide by number of active satellites.
-4. Z-score each week of year across years; tag regimes by FRP and hex contiguity.
+## Method (Deterministic, no LLM in numeric path)
+1. **Hexagonal Spatial Snapping**: Snap fire detections to H3 discrete cells (resolution 7 for regional, resolution 4 for global) and group by `(cell, day, satellite)` to collapse 375 m VIIRS pixel fragmentation into a unified spatial unit matching MODIS's 1 km footprint.
+2. **Sensitivity Floor Cutoff**: Apply a calibrated VIIRS FRP cutoff on the cell total (default: 2.0 MW) so small fragmented energy is retained while sub-MODIS detections below MODIS's minimum detection threshold are removed.
+3. **Overpass Effort Normalization**: Sum FRP across cells and divide by the number of active satellites operating during that week, balancing the differing orbital overpasses.
+4. **Historical Z-Scores & Regimes**: Standardize each calendar week $w \in [1, 52]$ across historical years ($Z = (x - \mu) / \sigma$). Tag fire regimes deterministically by FRP intensity and spatial hex contiguity (`AGRI-BURN`, `WILDFIRE-FRONT`, `STATIC-FLARE`, `BACKGROUND`).
 
-## Data sources
+Week indexing is computed deterministically:
+$$\text{week} = \min\left(52, \left\lfloor \frac{\text{day\_of\_year} - 1}{7} \right\rfloor + 1\right)$$
 
-### Archive
-The default archive is a **synthetic, seeded generator** (`lib/synthetic.ts`) that mimics sensor behaviour.
-It is not NASA data. When real FIRMS archive data is placed in `public/data/regions/<regionId>.json`,
-the app automatically detects it and labels the source as "NASA FIRMS archive".
-See [`docs/data-format.md`](docs/data-format.md) for the file schema.
+---
 
-### Live (last 24 hours)
-With a valid `FIRMS_MAP_KEY` in `.env.local`, the Live mode fetches near-real-time data from
-MODIS_NRT, VIIRS_SNPP_NRT, VIIRS_NOAA20_NRT, and VIIRS_NOAA21_NRT via the FIRMS API.
-Data is aggregated server-side into H3 cells, cached 15 minutes, and served under 1 MB.
-If the key is missing or the upstream is unavailable, the app falls back to archive mode
-with a clear status indicator.
+## Data Sources & Coverage Record
 
-## Satellite timeline
-| Satellite | Sensor | Active from | Notes |
-|-----------|--------|-------------|-------|
-| Terra     | MODIS  | 2000-11     | 1 km pixels |
-| Aqua      | MODIS  | 2002-07     | 1 km pixels |
-| SNPP      | VIIRS  | 2012-01     | 375 m pixels → pixel fragmentation |
-| NOAA-20   | VIIRS  | 2018-01     | 375 m pixels |
-| NOAA-21   | VIIRS  | 2024-01     | 375 m pixels |
+Coverage is strictly verified against NASA acquisition records in `public/data/manifest.json` and generated via `scripts/process_firms.py`. Coverage is **PARTIAL** and never claimed beyond what is verified:
 
-## Design rules
-- Flat dark telemetry look, no gradients/glassmorphism/glow/hover-scale/decorative icons
-- Inter for labels, JetBrains Mono (tabular-nums) for numbers
-- Colorblind-safe thermal ramp (dark → amber → orange → yellow → white)
-- Fixed 100dvh layout: 40px top bar, map 65% / inspector 35%, 240px calendar dock
-- Mobile fallback: panels stack under 900px
+### 1. NASA FIRMS Regional & Global Archives (`public/data/`)
+- **Terra (MODIS)**: 2000-11-01 to 2017-11-30.
+- **Aqua (MODIS)**: 2002-07-04 to 2017-11-30.
+- **Archive Gaps**:
+  - `2001-06-16` to `2001-07-02` (Terra)
+  - `2002-03-20` to `2002-03-27` (Terra)
+  - `2002-07-30` to `2002-08-07` (Aqua)
+  - `2013-12-01` to `2016-11-30` (Both Terra and Aqua missing from archive CSVs)
+- **VIIRS Archive Status**: VIIRS archive data (`SNPP`, `NOAA-20`, `NOAA-21`) is currently downloading and pending ingestion. The proof chart displays *"VIIRS data not loaded yet"* rather than fabricating comparison points.
+- **Cleaning & Filtering Pipeline**: See [`docs/cleaning_report.md`](docs/cleaning_report.md) for detailed cleaning accounting (82.8M rows processed, non-vegetation and low-confidence fires dropped, duplicates across overlapping date requests eliminated, 57.7M valid detections retained).
 
-## AI assistance
-Code scaffolded with an AI coding assistant (Antigravity/Claude); disclose this in the Space Apps submission form.
-All numeric outputs are deterministic code — no LLM in the data path. Synthetic data is always labeled as such.
+### 2. Live Global Telemetry (Last 24 Hours)
+With `FIRMS_MAP_KEY` in `.env.local`, the Live mode fetches near-real-time data from `MODIS_NRT`, `VIIRS_SNPP_NRT`, `VIIRS_NOAA20_NRT`, and `VIIRS_NOAA21_NRT`. Detections are aggregated server-side into H3 cells (res 4 globally, res 6 for user bounding boxes $\le 10^\circ \times 10^\circ$), cached 15 minutes via an in-memory LRU cache, and served in <200 KB.
+
+### 3. Synthetic Generator (`lib/synthetic.ts`)
+A deterministic seeded generator is used as a fallback **only if an archive file is missing**, and is prominently labeled as `SYNTHETIC DEMO` in the UI.
+
+---
+
+## Satellite Timeline
+| Satellite | Sensor | First Observation | Status in Archive |
+|---|---|---|---|
+| **Terra** | MODIS (1 km) | 2000-11-01 | Loaded in Archive |
+| **Aqua** | MODIS (1 km) | 2002-07-04 | Loaded in Archive |
+| **SNPP** | VIIRS (375 m) | 2012-01-20 | Live NRT / Archive pending |
+| **NOAA-20** | VIIRS (375 m) | 2018-01-05 | Live NRT / Archive pending |
+| **NOAA-21** | VIIRS (375 m) | 2024-01-17 | Live NRT / Archive pending |
+
+---
+
+## UI Features
+- **10-Second Telemetry Overview**: One-line plain-English headline computed from data.
+- **Three-Step Demo Tour**:
+  1. *The Problem (Raw)*: Visualizes raw detection inflation.
+  2. *Harmonize*: Demonstrates continuity across sensor transitions.
+  3. *Anomaly*: Automatically jumps to the highest historical Z-score anomaly.
+- **Terminology Glossary**: Plain-language definitions for Raw count, Harmonized index, Z-score, H3 cells, and FRP.
+- **Strict Design Standards**: Flat dark telemetry look (no gradients, blur, glow, shadows, hover-scale, or decorative icons). Colorblind-safe thermal ramp.
+
+---
+
+## AI Assistance Disclosure
+Scaffolded with an AI coding assistant (Antigravity). In compliance with NASA Space Apps rules, this is disclosed in the submission documentation. All numeric outputs, aggregations, and calculations stem strictly from deterministic TypeScript and Python code—no LLM exists in the numeric data path.
