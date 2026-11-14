@@ -239,7 +239,7 @@ export async function GET(req: NextRequest) {
     areaQuery = `${w},${s},${e},${n}`;
   }
 
-  // Cache check
+  // Cache check (fresh hit within TTL)
   const cacheKey = `${areaQuery}|r${zoomRes}`;
   const cached = cache.get(cacheKey);
   if (cached && Date.now() - cached.at < TTL_MS) {
@@ -248,40 +248,63 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Fetch last 24h (day range = 1) from all 4 sensors
-    const sourcePromises = SOURCES.map(async (src) => {
-      const url = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${key}/${src}/${areaQuery}/1`;
-      const res = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
-      if (!res.ok) {
-        if (res.status === 429) throw new Error("FIRMS API rate limit reached (5,000 req / 10 min)");
-        throw new Error(`${src} returned HTTP ${res.status}`);
+    // Fetch last 24h (day range = 1) across sources using Promise.allSettled
+    // with 8s per-request timeout so slow individual sensors don't kill the whole response.
+    const results = await Promise.allSettled(
+      SOURCES.map(async (src) => {
+        const url = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${key}/${src}/${areaQuery}/1`;
+        const res = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+        if (!res.ok) {
+          if (res.status === 429) throw new Error("FIRMS rate limit (5,000 req / 10 min)");
+          throw new Error(`${src} HTTP ${res.status}`);
+        }
+        const text = await res.text();
+        if (text.includes("Invalid MAP_KEY")) {
+          throw new Error("Invalid FIRMS MAP_KEY");
+        }
+        return parseCSV(text, src);
+      })
+    );
+
+    const allDetections: RawDetection[] = [];
+    const errors: string[] = [];
+    for (const r of results) {
+      if (r.status === "fulfilled") {
+        allDetections.push(...r.value);
+      } else {
+        errors.push(r.reason instanceof Error ? r.reason.message : "timeout");
       }
-      const text = await res.text();
-      if (text.includes("Invalid MAP_KEY")) {
-        throw new Error("Invalid FIRMS MAP_KEY");
-      }
-      return parseCSV(text, src);
-    });
+    }
 
-    const results = await Promise.all(sourcePromises);
-    const allDetections = results.flat();
+    // If at least one sensor returned detections, build live response and update cache
+    if (allDetections.length > 0) {
+      const agg = aggregateDetections(allDetections, zoomRes);
+      const body: LiveResponse = {
+        mode: "LIVE",
+        timestamp: new Date().toISOString(),
+        cells: agg.cells,
+        total_detections: agg.totalDetections,
+        per_sensor: {
+          raw: agg.perSensorRaw,
+          harmonized: agg.perSensorHarmonized,
+        },
+        harmonized_index: agg.harmonizedIndex,
+      };
 
-    const agg = aggregateDetections(allDetections, zoomRes);
-    const body: LiveResponse = {
-      mode: "LIVE",
-      timestamp: new Date().toISOString(),
-      cells: agg.cells,
-      total_detections: agg.totalDetections,
-      per_sensor: {
-        raw: agg.perSensorRaw,
-        harmonized: agg.perSensorHarmonized,
-      },
-      harmonized_index: agg.harmonizedIndex,
-    };
+      lruSet(cacheKey, body);
+      return NextResponse.json(body);
+    }
 
-    lruSet(cacheKey, body);
-    return NextResponse.json(body);
+    // If no detections returned and we have a previous cached entry, serve stale cache
+    if (cached) {
+      return NextResponse.json(cached.body);
+    }
+
+    return fallback(errors.length ? errors.join("; ") : "No live detections returned from FIRMS");
   } catch (err) {
+    if (cached) {
+      return NextResponse.json(cached.body);
+    }
     const message = err instanceof Error ? err.message : "Upstream FIRMS error";
     return fallback(message);
   }

@@ -188,9 +188,9 @@ export default function Workbench() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weeks, sel, res, dCutoff, normalize, harmonize]);
 
-  // Map layer data: either live global cells or selected archive week
+  // Map layer data: either live global cells (if live stream active) or selected archive week
   const displayHexes: HexCell[] = useMemo(() => {
-    if (liveMode && liveData?.cells?.length) {
+    if (liveMode && liveData?.mode === "LIVE" && liveData.cells.length > 0) {
       return liveData.cells.map((c) => ({
         hex: c.hex,
         count: c.count,
@@ -198,6 +198,7 @@ export default function Workbench() {
         density: c.density,
       }));
     }
+    // Fallback to archive data if live data is unavailable or timed out
     return hexes;
   }, [liveMode, liveData, hexes]);
 
@@ -301,25 +302,36 @@ export default function Workbench() {
       <section className="map" aria-label="Map view">
         <MapWorkbench
           hexes={displayHexes}
-          center={liveMode ? [20, 0] : region.center}
-          zoom={liveMode ? 2 : region.zoom}
+          center={liveMode && liveData?.mode === "LIVE" ? [20, 0] : region.center}
+          zoom={liveMode && liveData?.mode === "LIVE" ? 2 : region.zoom}
           selected={hex}
           onPick={setHex}
-          liveMode={liveMode}
+          liveMode={liveMode && liveData?.mode === "LIVE"}
         />
 
-        {/* Error overlay for Live mode failure */}
+        {/* Non-intrusive status toast if Live mode falls back to archive */}
         {liveMode && liveError && !liveLoading && (
-          <div className="error-overlay" role="alert">
-            <p style={{ fontWeight: 600, color: "var(--red)", marginBottom: 4 }}>
-              CACHED ARCHIVE MODE ACTIVE
-            </p>
-            <p style={{ color: "var(--dim)", fontSize: 11, marginBottom: 8 }}>
-              {liveError}
-            </p>
-            <p style={{ color: "var(--dim)", fontSize: 10 }}>
-              Verify FIRMS_MAP_KEY in .env.local or click Archive to explore historical regional data.
-            </p>
+          <div className="status-toast" role="status">
+            <span style={{ color: "var(--amber)", fontWeight: 600 }}>CACHED ARCHIVE MODE ACTIVE</span>
+            <span style={{ color: "var(--dim)", margin: "0 8px" }}>·</span>
+            <span style={{ color: "var(--dim)" }}>{liveError}</span>
+            <button
+              onClick={() => {
+                setLiveLoading(true);
+                setLiveError(null);
+                fetch("/api/firms/live?res=4")
+                  .then((r) => r.json())
+                  .then((d) => {
+                    setLiveData(d);
+                    if (d.mode === "CACHED ARCHIVE MODE") setLiveError(d.reason ?? "Upstream unavailable");
+                  })
+                  .catch((e) => setLiveError(e.message))
+                  .finally(() => setLiveLoading(false));
+              }}
+              style={{ marginLeft: 10, height: 20, padding: "0 6px", fontSize: 10 }}
+            >
+              Retry
+            </button>
           </div>
         )}
       </section>
