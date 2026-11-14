@@ -9,7 +9,16 @@ interface ProductLandingProps {
 export default function ProductLanding({ onLaunchWorkbench }: ProductLandingProps) {
   const [activeTab, setActiveTab] = useState<
     "overview" | "problem" | "methodology" | "regions" | "architecture" | "proof"
-  >("overview");
+  >(() => {
+    if (typeof window !== "undefined") {
+      const p = new URLSearchParams(window.location.search);
+      const t = p.get("tab");
+      if (t && ["overview", "problem", "methodology", "regions", "architecture", "proof"].includes(t)) {
+        return t as any;
+      }
+    }
+    return "overview";
+  });
 
   return (
     <div className="product-page">
