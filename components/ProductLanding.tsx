@@ -15,13 +15,16 @@ export default function ProductLanding({ onLaunchWorkbench }: ProductLandingProp
     <div className="product-page">
       {/* Product Hero */}
       <section className="product-hero">
-        <div className="hero-tag mono">NASA FIRMS SATELLITE TELEMETRY HARMONIZATION · 2000–2026</div>
+        <div className="hero-tag mono">
+          <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "var(--amber)", marginRight: 6 }} />
+          NASA FIRMS SATELLITE TELEMETRY HARMONIZATION · 2000–2026
+        </div>
         <h1 className="hero-title">
           PYRO-SYNC: Calibrating Decadal Satellite Wildfire Records Across MODIS &amp; VIIRS Generations
         </h1>
         <p className="hero-lead">
           When NASA introduced the 375&nbsp;m VIIRS sensor in 2012, raw hotspot detections artificially surged{" "}
-          <strong style={{ color: "var(--amber)" }}>4.9×</strong> due to sub-pixel fire fragmentation. PYRO-SYNC
+          <strong style={{ color: "var(--amber)", textDecoration: "underline" }}>4.9×</strong> due to sub-pixel fire fragmentation. PYRO-SYNC
           restores decadal continuity through spatial H3 hexagonal clustering, cell-level radiative energy cutoff, and
           overpass effort normalization.
         </p>
@@ -50,19 +53,19 @@ export default function ProductLanding({ onLaunchWorkbench }: ProductLandingProp
         {/* Telemetry Metric Highlights */}
         <div className="hero-stats mono">
           <div className="hero-stat-card">
-            <span className="stat-num">26 Years</span>
+            <span className="stat-num" style={{ color: "var(--cyan)" }}>26 Years</span>
             <span className="stat-label">Continuous Temporal Record (2000–2026)</span>
           </div>
           <div className="hero-stat-card">
-            <span className="stat-num">5 Satellites</span>
+            <span className="stat-num" style={{ color: "var(--amber)" }}>5 Satellites</span>
             <span className="stat-label">Terra, Aqua, S-NPP, NOAA-20, NOAA-21</span>
           </div>
           <div className="hero-stat-card">
-            <span className="stat-num">10M+ Hotspots</span>
+            <span className="stat-num" style={{ color: "#FFFFFF" }}>10M+ Hotspots</span>
             <span className="stat-label">Real NASA FIRMS Hotspot Telemetry</span>
           </div>
           <div className="hero-stat-card">
-            <span className="stat-num">±8% Agreement</span>
+            <span className="stat-num" style={{ color: "var(--green)" }}>±8% Agreement</span>
             <span className="stat-label">Validated Equal-Energy Calibration</span>
           </div>
         </div>
@@ -117,8 +120,7 @@ export default function ProductLanding({ onLaunchWorkbench }: ProductLandingProp
             <p>
               Satellite active fire detection forms the cornerstone of modern global fire science, carbon emissions
               modeling, and climate impact assessments. NASA’s Fire Information for Resource Management System (FIRMS)
-              provides global near-real-time and archived thermal hotspot data derived from multiple polar-orbiting
-              satellites.
+              provides global near-real-time and archived thermal hotspot data derived from multiple polar-orbiting satellites.
             </p>
             <p>
               However, multi-decadal analysis faces a severe technological artifact: the transition from the legacy{" "}
@@ -128,31 +130,38 @@ export default function ProductLanding({ onLaunchWorkbench }: ProductLandingProp
             </p>
 
             <div className="callout-box">
-              <strong style={{ color: "var(--amber)" }}>THE CORE HAZARD:</strong>
+              <strong style={{ color: "var(--amber)", fontSize: 15 }}>⚠️ THE CORE HAZARD:</strong>
               <p>
-                A researcher comparing 2005 to 2015 raw detection counts will observe an apparent{" "}
+                A researcher or policymaker comparing 2005 to 2015 raw detection counts will observe an apparent{" "}
                 <strong>300% to 500% explosion in global wildfire frequency</strong>. In reality, the burning area and
                 radiative fire energy remained comparable; the sensor’s pixel footprint shrank by a factor of 7, causing
                 individual fires to be recorded as a cluster of 4 to 10 distinct detections rather than 1.
               </p>
             </div>
 
+            {/* Visual Overview Comparison Cards */}
             <div className="grid-2col">
               <div className="doc-card">
-                <h3>The MODIS Era (2000–Present)</h3>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                  <h3 style={{ margin: 0 }}>The MODIS Era (2000–Present)</h3>
+                  <span className="pill mono">1,000m Pixels</span>
+                </div>
                 <ul className="doc-list">
                   <li><strong>Sensors:</strong> Terra (morning equator crossing) &amp; Aqua (afternoon equator crossing).</li>
-                  <li><strong>Spatial Resolution:</strong> 1,000&nbsp;m (1.0&nbsp;km²) at nadir.</li>
+                  <li><strong>Spatial Resolution:</strong> 1,000&nbsp;m (1.0&nbsp;km²) at nadir; expands up to 10&nbsp;km² at swath edges.</li>
                   <li><strong>Sensitivity:</strong> Fire Radiative Power (FRP) threshold ~5 to 10&nbsp;MW.</li>
                   <li><strong>Characteristics:</strong> Conservative point-spread function; small fires often fall below detection limits, while larger fires aggregate into single 1&nbsp;km pixels.</li>
                 </ul>
               </div>
 
               <div className="doc-card">
-                <h3>The VIIRS Era (2012–Present)</h3>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                  <h3 style={{ margin: 0, color: "var(--cyan)" }}>The VIIRS Era (2012–Present)</h3>
+                  <span className="pill mono" style={{ borderColor: "var(--cyan)", color: "var(--cyan)" }}>375m Pixels</span>
+                </div>
                 <ul className="doc-list">
                   <li><strong>Sensors:</strong> Suomi-NPP, NOAA-20, NOAA-21 (35–50 min offset polar orbits).</li>
-                  <li><strong>Spatial Resolution:</strong> 375&nbsp;m (0.14&nbsp;km²) at nadir; pixel size controlled at scan edge.</li>
+                  <li><strong>Spatial Resolution:</strong> 375&nbsp;m (0.14&nbsp;km²) at nadir; pixel size controlled across scan edge.</li>
                   <li><strong>Sensitivity:</strong> Fire Radiative Power (FRP) threshold ~0.1 to 0.5&nbsp;MW.</li>
                   <li><strong>Characteristics:</strong> Resolves fine-scale agricultural and sub-canopy burning; a single 1&nbsp;km fire fragments into 7+ discrete detections.</li>
                 </ul>
@@ -161,8 +170,8 @@ export default function ProductLanding({ onLaunchWorkbench }: ProductLandingProp
 
             <div className="action-banner">
               <div>
-                <strong>Explore live interactive comparison in the Workbench</strong>
-                <p style={{ margin: "2px 0 0", color: "var(--dim)", fontSize: 11 }}>
+                <strong style={{ fontSize: 16 }}>Explore live interactive comparison in the Workbench</strong>
+                <p style={{ margin: "4px 0 0", color: "var(--text-secondary)", fontSize: 13 }}>
                   Inspect historical weekly matrix, toggle raw vs harmonized views, and see regional fire regimes.
                 </p>
               </div>
@@ -183,6 +192,126 @@ export default function ProductLanding({ onLaunchWorkbench }: ProductLandingProp
               sensor generations creates three compounding distortions:
             </p>
 
+            {/* DIAGRAM 1: SENSOR SUB-PIXEL FRAGMENTATION VISUAL COMPARISON */}
+            <div className="doc-card" style={{ margin: "24px 0" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                <div>
+                  <h3 style={{ margin: 0 }}>Visual Diagram: Sub-Pixel Fire Fragmentation</h3>
+                  <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+                    How the exact same 1 km² wildfire event is observed by MODIS vs VIIRS
+                  </span>
+                </div>
+                <span className="badge">4.9× DISPARITY FACTOR</span>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24, alignItems: "center" }}>
+                {/* MODIS Box */}
+                <div style={{ background: "#0B0E14", border: "2px solid #334155", borderRadius: 8, padding: 18, textAlign: "center" }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: "#FFFFFF", marginBottom: 6 }}>
+                    MODIS (1,000 m × 1,000 m Footprint)
+                  </div>
+                  <div style={{ fontSize: 11.5, color: "var(--text-secondary)", marginBottom: 12 }}>
+                    Area: 1.0 km² · Detection Count: <strong style={{ color: "#FFF" }}>1 Detection</strong>
+                  </div>
+                  <div
+                    style={{
+                      width: 180,
+                      height: 180,
+                      margin: "0 auto",
+                      border: "2px dashed #64748B",
+                      borderRadius: 6,
+                      background: "rgba(255, 255, 255, 0.03)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      position: "relative",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 48,
+                        height: 48,
+                        borderRadius: "50%",
+                        background: "radial-gradient(circle, #EF4444 0%, #B91C1C 70%, transparent 100%)",
+                        boxShadow: "0 0 16px rgba(239, 68, 68, 0.8)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#FFF",
+                        fontWeight: 800,
+                        fontSize: 11,
+                      }}
+                    >
+                      10 MW
+                    </div>
+                    <span style={{ position: "absolute", bottom: 6, fontSize: 10, color: "#94A3B8" }}>
+                      1 Integrated Hotspot
+                    </span>
+                  </div>
+                </div>
+
+                {/* Arrow */}
+                <div style={{ textAlign: "center", color: "var(--amber)", fontSize: 24, fontWeight: 800 }}>
+                  VS
+                </div>
+
+                {/* VIIRS Grid */}
+                <div style={{ background: "#0B0E14", border: "2px solid #0284C7", borderRadius: 8, padding: 18, textAlign: "center" }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: "var(--cyan)", marginBottom: 6 }}>
+                    VIIRS (375 m × 375 m Footprint)
+                  </div>
+                  <div style={{ fontSize: 11.5, color: "var(--text-secondary)", marginBottom: 12 }}>
+                    Area: 0.14 km² each · Detection Count: <strong style={{ color: "var(--amber)" }}>7 Detections</strong>
+                  </div>
+                  <div
+                    style={{
+                      width: 180,
+                      height: 180,
+                      margin: "0 auto",
+                      border: "2px dashed #0284C7",
+                      borderRadius: 6,
+                      background: "rgba(2, 132, 199, 0.05)",
+                      display: "grid",
+                      gridTemplateColumns: "repeat(3, 1fr)",
+                      gap: 4,
+                      padding: 6,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {[1, 2, 3, 4, 5, 6, 7].map((num) => (
+                      <div
+                        key={num}
+                        style={{
+                          height: 48,
+                          borderRadius: 4,
+                          background: "linear-gradient(180deg, #F97316 0%, #C2410C 100%)",
+                          border: "1px solid #FDBA74",
+                          boxShadow: "0 0 8px rgba(249, 115, 22, 0.6)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "#FFF",
+                          fontWeight: 700,
+                          fontSize: 10,
+                        }}
+                      >
+                        1.4 MW
+                      </div>
+                    ))}
+                    <div style={{ height: 48, borderRadius: 4, border: "1px dashed #334155" }} />
+                    <div style={{ height: 48, borderRadius: 4, border: "1px dashed #334155" }} />
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ marginTop: 16, background: "rgba(0, 0, 0, 0.3)", padding: "10px 14px", borderRadius: 6, fontSize: 12, color: "#CBD5E1" }}>
+                <strong>Key Insight:</strong> The physical fire released an identical 10 MW of radiative energy in both scenarios.
+                However, VIIRS recorded <strong>7 separate detections</strong> instead of <strong>1</strong>. PYRO-SYNC groups both into an H3 hexagonal cell to restore mathematical equivalence.
+              </div>
+            </div>
+
+            {/* Sensor Table */}
             <div className="diagram-table mono">
               <div className="diagram-header">
                 <span>SENSOR</span>
@@ -263,9 +392,72 @@ export default function ProductLanding({ onLaunchWorkbench }: ProductLandingProp
           <article className="prose-section">
             <h2>Harmonization Mathematics &amp; Pipeline</h2>
             <p>
-              PYRO-SYNC solves the sensor disparity problem through a 3-stage mathematical harmonization pipeline
+              PYRO-SYNC solves the sensor disparity problem through a 4-stage mathematical harmonization pipeline
               implemented in <code>lib/harmonizer.ts</code>:
             </p>
+
+            {/* DIAGRAM 2: 4-STAGE PIPELINE FLOW DIAGRAM */}
+            <div className="diagram-stage-grid">
+              <div className="stage-step-card">
+                <span className="stage-badge">Stage 01</span>
+                <h4>H3 Spatial Clustering</h4>
+                <p>Maps (lat, lon) coordinates into resolution-7 hexagons (~5.16 km²). Groups by cell, day, and satellite.</p>
+                <code className="infotip-formula mono">h = latLngToCell(lat, lon, res=7)</code>
+              </div>
+
+              <div className="stage-step-card">
+                <span className="stage-badge">Stage 02</span>
+                <h4>Cell-Level Cutoff</h4>
+                <p>Applies 2.0 MW sensitivity threshold to the cell total FRP rather than individual pixels to retain fragmented fire energy.</p>
+                <code className="infotip-formula mono">{"FRP_cell >= 2.0 MW"}</code>
+              </div>
+
+              <div className="stage-step-card">
+                <span className="stage-badge">Stage 03</span>
+                <h4>Overpass Normalization</h4>
+                <p>Divides total aggregated FRP by active satellites providing observations in that calendar week.</p>
+                <code className="infotip-formula mono">{"Index = Σ(FRP) / N_active"}</code>
+              </div>
+
+              <div className="stage-step-card">
+                <span className="stage-badge">Stage 04</span>
+                <h4>Multi-Decadal Z-Score</h4>
+                <p>Calculates weekly departure from the 26-year historical baseline for that specific calendar week.</p>
+                <code className="infotip-formula mono">{"Z = (Index - μ_w) / σ_w"}</code>
+              </div>
+            </div>
+
+            {/* DIAGRAM 3: ANOMALY REGIME SPECTRUM BAR */}
+            <div className="doc-card" style={{ margin: "20px 0" }}>
+              <h3 style={{ margin: "0 0 10px" }}>Visual Diagram: Statistical Anomaly Spectrum (Z-Score)</h3>
+              <p style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 14 }}>
+                Fire seasons fluctuate naturally with monsoons and weather. Z-scores normalize these cyclical cycles:
+              </p>
+              
+              <div style={{ height: 28, borderRadius: 6, display: "flex", overflow: "hidden", marginBottom: 10, border: "1px solid #334155" }}>
+                <div style={{ flex: 1.5, background: "#0284C7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#FFF" }}>
+                  Z &lt; 0σ (Suppressed)
+                </div>
+                <div style={{ flex: 2, background: "#10B981", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#000" }}>
+                  0σ ≤ Z &lt; 1σ (Normal Baseline)
+                </div>
+                <div style={{ flex: 1.5, background: "#F59E0B", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#000" }}>
+                  1σ ≤ Z &lt; 2σ (Elevated)
+                </div>
+                <div style={{ flex: 2, background: "#EF4444", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#FFF" }}>
+                  Z ≥ 2.0σ (Extreme Anomaly)
+                </div>
+              </div>
+
+              <div className="kv mono" style={{ fontSize: 11.5 }}>
+                <span>Z &lt; 0.0σ</span>
+                <span>Below 26-year median seasonal burning (wet anomaly or strict enforcement)</span>
+                <span>0.0σ to 1.5σ</span>
+                <span>Typical annual seasonal burning cycle</span>
+                <span>≥ 2.0σ</span>
+                <span style={{ color: "var(--amber)", fontWeight: 700 }}>True catastrophic fire breakout (e.g. 2018 Camp Fire, 2016 Punjab peak)</span>
+              </div>
+            </div>
 
             <div className="math-card">
               <h3>Stage 1: Spatial Aggregation via Uber H3 Hexagonal Grid</h3>
@@ -359,7 +551,7 @@ export default function ProductLanding({ onLaunchWorkbench }: ProductLandingProp
                 </p>
                 <button
                   className="btn-secondary"
-                  style={{ marginTop: 8 }}
+                  style={{ marginTop: 12 }}
                   onClick={() => onLaunchWorkbench(0, false)}
                 >
                   Inspect Punjab in Workbench →
@@ -384,7 +576,7 @@ export default function ProductLanding({ onLaunchWorkbench }: ProductLandingProp
                 </p>
                 <button
                   className="btn-secondary"
-                  style={{ marginTop: 8 }}
+                  style={{ marginTop: 12 }}
                   onClick={() => onLaunchWorkbench(1, false)}
                 >
                   Inspect California in Workbench →
@@ -409,7 +601,7 @@ export default function ProductLanding({ onLaunchWorkbench }: ProductLandingProp
                 </p>
                 <button
                   className="btn-secondary"
-                  style={{ marginTop: 8 }}
+                  style={{ marginTop: 12 }}
                   onClick={() => onLaunchWorkbench(2, false)}
                 >
                   Inspect Amazon in Workbench →
@@ -440,18 +632,18 @@ export default function ProductLanding({ onLaunchWorkbench }: ProductLandingProp
               <p>
                 When processed through <code>harmonizeWeek()</code>:
               </p>
-              <div className="kv mono" style={{ maxWidth: 450, margin: "10px 0" }}>
+              <div className="kv mono" style={{ maxWidth: 480, margin: "14px 0" }}>
                 <span>Raw Count Ratio (VIIRS / MODIS)</span>
                 <span style={{ color: "var(--red)", fontWeight: 700 }}>5.00× (False Surge)</span>
                 <span>Harmonized Index Agreement</span>
                 <span style={{ color: "var(--green)", fontWeight: 700 }}>1.00 ± 0.08 (Exact Energy Match)</span>
               </div>
-              <p style={{ color: "var(--dim)", fontSize: 11 }}>
+              <p style={{ color: "var(--text-secondary)", fontSize: 12 }}>
                 Verified continuously by <code>__tests__/dataSource.test.ts</code> on every commit.
               </p>
             </div>
 
-            <div className="doc-card" style={{ marginTop: 14 }}>
+            <div className="doc-card" style={{ marginTop: 16 }}>
               <h3>Long-Term Decadal Totals (2000–2026)</h3>
               <p>
                 Evaluation of global yearly totals from <code>public/data/global/totals.json</code> confirms that while raw
@@ -492,10 +684,10 @@ export default function ProductLanding({ onLaunchWorkbench }: ProductLandingProp
               </div>
             </div>
 
-            <div className="action-banner" style={{ marginTop: 20 }}>
+            <div className="action-banner" style={{ marginTop: 24 }}>
               <div>
-                <strong>Ready to test the live platform?</strong>
-                <p style={{ margin: "2px 0 0", color: "var(--dim)", fontSize: 11 }}>
+                <strong style={{ fontSize: 16 }}>Ready to test the live platform?</strong>
+                <p style={{ margin: "4px 0 0", color: "var(--text-secondary)", fontSize: 13 }}>
                   Open the full Workbench to inspect the interactive map, resizable cells window, and hover telemetry tooltips.
                 </p>
               </div>
@@ -510,12 +702,12 @@ export default function ProductLanding({ onLaunchWorkbench }: ProductLandingProp
       {/* Product Footer */}
       <footer className="product-footer mono">
         <div>
-          <span>PYRO-SYNC · SATELLITE WILDFIRE TELEMETRY PLATFORM</span>
-          <span style={{ color: "var(--dim)", marginLeft: 12 }}>
+          <span style={{ fontWeight: 700, color: "#FFF" }}>PYRO-SYNC · SATELLITE WILDFIRE TELEMETRY PLATFORM</span>
+          <span style={{ color: "var(--dim)", marginLeft: 14 }}>
             Data source: NASA FIRMS (MODIS NRT/Archive &amp; VIIRS NRT/Archive)
           </span>
         </div>
-        <div style={{ color: "var(--dim)", fontSize: 11 }}>
+        <div style={{ color: "var(--dim)", fontSize: 11.5 }}>
           Built for high-density scientific exploration · Zero tracking · Open architecture
         </div>
       </footer>

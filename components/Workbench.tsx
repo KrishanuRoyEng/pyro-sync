@@ -105,6 +105,9 @@ export default function Workbench() {
     return "workbench";
   });
 
+  // Mobile navigation tab for small screens (< 900px)
+  const [mobileTab, setMobileTab] = useState<"map" | "inspector" | "matrix">("map");
+
   const handleSetViewMode = (mode: "workbench" | "product") => {
     setViewMode(mode);
     if (typeof window !== "undefined") {
@@ -643,8 +646,30 @@ export default function Workbench() {
         </span>
       </div>
 
+      {/* Mobile Tab Switcher for Small Screens */}
+      <nav className="mobile-nav-bar" aria-label="Mobile View Navigation">
+        <button
+          className={`mobile-tab-btn ${mobileTab === "map" ? "active" : ""}`}
+          onClick={() => setMobileTab("map")}
+        >
+          🗺️ Map View
+        </button>
+        <button
+          className={`mobile-tab-btn ${mobileTab === "inspector" ? "active" : ""}`}
+          onClick={() => setMobileTab("inspector")}
+        >
+          📊 Telemetry
+        </button>
+        <button
+          className={`mobile-tab-btn ${mobileTab === "matrix" ? "active" : ""}`}
+          onClick={() => setMobileTab("matrix")}
+        >
+          📅 Calendar
+        </button>
+      </nav>
+
       {/* Middle Pane: Map (left) + Resizer + Inspector Sidebar (right) */}
-      <div className="middle-pane">
+      <div className={`middle-pane mobile-view-${mobileTab}`}>
         <section className="map" aria-label="Map view">
           <MapWorkbench
             hexes={displayHexes}
@@ -997,7 +1022,7 @@ export default function Workbench() {
 
   {/* Burning Activity Matrix Dock (Resizable & Collapsible) */}
   <section
-    className="dock"
+    className={`dock mobile-view-${mobileTab}`}
     aria-label="Calendar dock"
     style={{ height: dockCollapsed ? 32 : dockHeight }}
   >
