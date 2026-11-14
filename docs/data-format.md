@@ -16,9 +16,9 @@ $$\text{day} = (\text{day\_of\_year} - 1) - 7 \times (\text{week} - 1)$$
 
 ---
 
-## 1. Benchmark Region Aggregates (`public/data/regions/<id>.json`)
+## 1. Benchmark Region Aggregates (`public/data/regions/<id>.json.gz`)
 
-Contains H3 resolution-7 aggregates for benchmark regions (e.g. `punjab`, `california`, `amazon`). Columnar format where arrays share an index.
+Contains gzip-compressed H3 resolution-7 aggregates for benchmark regions (e.g. `punjab`, `california`, `amazon`). Columnar format where arrays share an index. Decompressed in the browser using the Web Streams `DecompressionStream("gzip")` API.
 
 ```json
 {
@@ -41,11 +41,11 @@ Contains H3 resolution-7 aggregates for benchmark regions (e.g. `punjab`, `calif
 |---|---|---|
 | `region` | `string` | Region identifier (`punjab`, `california`, `amazon`) |
 | `bbox` | `[number, number, number, number]` | Bounding box `[west, south, east, north]` |
-| `res` | `number` | H3 spatial resolution (`7`, ~5.2 km² per cell) |
+| `res` | `number` | H3 spatial resolution (`7`, ~5.161 km² per cell) |
 | `sats` | `string[]` | Satellite names lookup table |
 | `hexes` | `string[]` | Unique H3 cell indexes |
 | `h` | `number[]` | Index into `hexes` |
-| `y` | `number[]` | Calendar year (e.g. 2000–2017) |
+| `y` | `number[]` | Calendar year (e.g. 2000–2026) |
 | `w` | `number[]` | Week of year ($1 \dots 52$) |
 | `d` | `number[]` | Day offset within week ($0 \dots 8$) |
 | `s` | `number[]` | Index into `sats` |
@@ -54,16 +54,16 @@ Contains H3 resolution-7 aggregates for benchmark regions (e.g. `punjab`, `calif
 
 ---
 
-## 2. Global Yearly Aggregates (`public/data/global/<year>.json`)
+## 2. Global Yearly Aggregates (`public/data/global/<year>.json.gz`)
 
-Contains global H3 resolution-4 (~1,770 km² per cell) weekly totals split by sensor family. Loaded lazily only for the active year.
+Contains gzip-compressed global H3 resolution-3 (~12,393 km² per cell) weekly totals split by sensor family. Loaded lazily only for the active year and decompressed client-side via `DecompressionStream("gzip")`.
 
 ```json
 {
   "year": 2000,
-  "res": 4,
+  "res": 3,
   "families": ["MODIS", "VIIRS"],
-  "hexes": ["840c113ffffffff", "..."],
+  "hexes": ["830c11fffffffff", "..."],
   "h": [0, 1],
   "w": [52, 52],
   "k": [0, 0],
@@ -75,7 +75,7 @@ Contains global H3 resolution-4 (~1,770 km² per cell) weekly totals split by se
 | Field | Type | Description |
 |---|---|---|
 | `year` | `number` | Calendar year |
-| `res` | `number` | H3 spatial resolution (`4`) |
+| `res` | `number` | H3 spatial resolution (`3`, ~12,393 km² per cell; legacy files may use `4`, ~1,770 km²) |
 | `families` | `string[]` | Sensor family names: `["MODIS", "VIIRS"]` |
 | `hexes` | `string[]` | Unique H3 cell strings |
 | `h` | `number[]` | Index into `hexes` |

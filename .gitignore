@@ -31,3 +31,5 @@ scripts/request_firms.py
 # Local env files - NEVER COMMIT
 .env*.local
 .env
+data_src/
+data_src/

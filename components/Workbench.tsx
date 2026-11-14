@@ -9,6 +9,7 @@ import {
   YEAR0,
   YEAR1,
   zScores,
+  HEX_AREA_KM2,
 } from "@/lib/harmonizer";
 import { REGIONS as BASE_REGIONS, weeksInYear, years, Region } from "@/lib/synthetic";
 import dataSource, {
@@ -224,7 +225,7 @@ export default function Workbench() {
       return { hexes: [] as HexCell[], regime: "BACKGROUND" as const, stat: { raw: 0, index: 0, frp: 0, cells: 0 } };
     }
 
-    // Special World View case: use lazy-loaded H3 res 4 global file if available
+    // Special World View case: use lazy-loaded H3 res 3 global file if available
     if (region.id === "world" && globalYearData && globalYearData.year === selectedYear) {
       const targetWeek = sel.w + 1;
       const cellsMap = new Map<string, { count: number; frp: number }>();
@@ -237,7 +238,8 @@ export default function Workbench() {
           cellsMap.set(hStr, existing);
         }
       }
-      const area = 1770; // Res 4 area km²
+      const fileRes = globalYearData.res ?? 3;
+      const area = HEX_AREA_KM2[fileRes] ?? 12393;
       const worldHexes: HexCell[] = [...cellsMap].map(([hexId, d]) => ({
         hex: hexId,
         count: d.count,
@@ -498,6 +500,13 @@ export default function Workbench() {
         />
 
         {/* Fallback Toast */}
+        {!liveMode && regionData?.error && (
+          <div className="status-toast" role="status">
+            <span style={{ color: "var(--amber)", fontWeight: 600 }}>SYNTHETIC DEMO FALLBACK</span>
+            <span style={{ color: "var(--dim)", margin: "0 8px" }}>·</span>
+            <span style={{ color: "var(--dim)" }}>{regionData.error}</span>
+          </div>
+        )}
         {liveMode && liveError && !liveLoading && (
           <div className="status-toast" role="status">
             <span style={{ color: "var(--amber)", fontWeight: 600 }}>CACHED ARCHIVE MODE</span>
@@ -602,7 +611,10 @@ export default function Workbench() {
                 <span>Raw Hotspot Count</span>
                 <span>{stat.raw.toLocaleString()}</span>
                 <span>Active H3 Cells</span>
-                <span>{hexes.length.toLocaleString()}</span>
+                <span>
+                  {hexes.length.toLocaleString()}{" "}
+                  {region.id === "world" ? `(res ${globalYearData?.res ?? 3})` : `(res ${res})`}
+                </span>
                 <span>Harmonized Thermal Index</span>
                 <span>{stat.index.toFixed(1)} MW</span>
                 <span>Fire Regime</span>

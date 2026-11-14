@@ -72,6 +72,7 @@ export interface LoadedRegionData {
   coverageText: string;
   hasViirs: boolean;
   activeSatellitesMatrix: string[][][]; // [yearIndex][weekIndex] -> sat names
+  error?: string;
 }
 
 /* ---------- Date & Manifest Helpers ---------- */
@@ -144,7 +145,7 @@ export function getCoverageSummary(manifest: Manifest | null): {
   }
 
   const satNames = sats.join(", ");
-  const text = `${satNames} (${minFirst.slice(0, 7)} to ${maxLast.slice(0, 7)}) · Gap: 2013-12 to 2016-11`;
+  const text = `${satNames} (${minFirst.slice(0, 7)} to ${maxLast.slice(0, 7)})`;
 
   return {
     sats,
@@ -153,6 +154,23 @@ export function getCoverageSummary(manifest: Manifest | null): {
     summaryText: text,
     hasViirs,
   };
+}
+
+/* ---------- Gzip Fetch & Decompress Helper ---------- */
+
+export async function fetchGzipJson<T>(url: string): Promise<T> {
+  if (typeof DecompressionStream === "undefined") {
+    throw new Error("DecompressionStream is not supported by your browser");
+  }
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch ${url} (HTTP ${res.status})`);
+  }
+  if (!res.body) {
+    throw new Error(`Empty response body for ${url}`);
+  }
+  const decompressed = new Response(res.body.pipeThrough(new DecompressionStream("gzip")));
+  return (await decompressed.json()) as T;
 }
 
 /* ---------- Cache Singletons ---------- */
@@ -191,12 +209,12 @@ export async function loadTotals(): Promise<TotalsFile | null> {
 export async function loadGlobalYear(year: number): Promise<GlobalYearFile | null> {
   if (cachedGlobalYears.has(year)) return cachedGlobalYears.get(year)!;
   try {
-    const res = await fetch(`/data/global/${year}.json`);
-    if (!res.ok) return null;
-    const data: GlobalYearFile = await res.json();
+    const data = await fetchGzipJson<GlobalYearFile>(`/data/global/${year}.json.gz`);
     cachedGlobalYears.set(year, data);
     return data;
-  } catch {
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.warn(`Failed to load global year file for ${year} (${errorMsg}).`);
     return null;
   }
 }
@@ -296,23 +314,22 @@ export async function loadRegion(regionId: string): Promise<LoadedRegionData> {
     return worldData;
   }
 
-  // Attempt to load NASA FIRMS archive from public/data/regions/<id>.json
+  // Attempt to load NASA FIRMS archive from public/data/regions/<id>.json.gz
   try {
-    const res = await fetch(`/data/regions/${regionId}.json`);
-    if (res.ok) {
-      const data: RegionColumnarFile = await res.json();
-      const parsed = parseRegionColumnar(data, manifest);
-      cachedRegions.set(regionId, parsed);
-      return parsed;
-    }
-  } catch {
-    // File missing or failed -> fallback to synthetic
+    const data = await fetchGzipJson<RegionColumnarFile>(`/data/regions/${regionId}.json.gz`);
+    const parsed = parseRegionColumnar(data, manifest);
+    cachedRegions.set(regionId, parsed);
+    return parsed;
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.warn(`Failed to load archive for region ${regionId} (${errorMsg}); falling back to synthetic.`);
+    const synth = createSyntheticRegion(regionDef, manifest);
+    synth.error = typeof DecompressionStream === "undefined"
+      ? "Browser lacks DecompressionStream API for gzip files; fallback to SYNTHETIC DEMO."
+      : `Archive file missing or unreadable (${errorMsg}); fallback to SYNTHETIC DEMO.`;
+    cachedRegions.set(regionId, synth);
+    return synth;
   }
-
-  // Synthetic demo fallback
-  const synth = createSyntheticRegion(regionDef, manifest);
-  cachedRegions.set(regionId, synth);
-  return synth;
 }
 
 /* ---------- World Region Loader (Aggregates Global Files) ---------- */
@@ -483,6 +500,7 @@ export async function computeProofChartData(): Promise<ProofChartData> {
 
 /* ---------- Default Export ---------- */
 const dataSource = {
+  fetchGzipJson,
   loadManifest,
   loadRegion,
   loadGlobalYear,

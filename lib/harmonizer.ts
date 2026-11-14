@@ -15,7 +15,7 @@ export interface Params { res: 5 | 6 | 7; viirsCutoff: number; normalize: boolea
 export interface HexCell { hex: string; count: number; frp: number; density: number }
 export interface WeekStat { raw: number; index: number; frp: number; cells: number }
 
-export const HEX_AREA_KM2: Record<number, number> = { 5: 252.9, 6: 36.13, 7: 5.161 };
+export const HEX_AREA_KM2: Record<number, number> = { 3: 12393, 4: 1770, 5: 252.9, 6: 36.13, 7: 5.161 };
 export const YEAR0 = 2000;
 export const YEAR1 = 2026;
 export const LAST_WEEK_2026 = 45;

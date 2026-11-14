@@ -1,13 +1,15 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+import { gzipSync } from "zlib";
 import {
   parseRegionColumnar,
   getActiveSatellitesFromManifest,
   getCoverageSummary,
   getWeekDateRange,
+  fetchGzipJson,
   RegionColumnarFile,
   Manifest,
 } from "../lib/dataSource";
-import { harmonizeWeek, Params, Detection } from "../lib/harmonizer";
+import { harmonizeWeek, Params, Detection, HEX_AREA_KM2 } from "../lib/harmonizer";
 
 describe("dataSource parsing & manifest coverage", () => {
   const tinyManifest: Manifest = {
@@ -102,6 +104,46 @@ describe("dataSource parsing & manifest coverage", () => {
 
     const w52Leap = getWeekDateRange(2020, 52);
     expect(w52Leap.endStr).toBe("2020-12-31");
+  });
+
+  it("verifies H3 cell area definitions for resolutions 3 through 7", () => {
+    expect(HEX_AREA_KM2[3]).toBe(12393);
+    expect(HEX_AREA_KM2[4]).toBe(1770);
+    expect(HEX_AREA_KM2[7]).toBe(5.161);
+  });
+
+  it("decompresses gzip responses via DecompressionStream in fetchGzipJson", async () => {
+    const originalFetch = globalThis.fetch;
+    const testPayload = { year: 2005, res: 3, hexes: ["830c11fffffffff"] };
+    const compressed = gzipSync(Buffer.from(JSON.stringify(testPayload)));
+
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(compressed, {
+        headers: { "Content-Type": "application/gzip" },
+      })
+    );
+
+    try {
+      const data = await fetchGzipJson<typeof testPayload>("/data/global/2005.json.gz");
+      expect(data.year).toBe(2005);
+      expect(data.res).toBe(3);
+      expect(data.hexes).toEqual(["830c11fffffffff"]);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("handles missing files (HTTP 404) gracefully in fetchGzipJson", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(null, { status: 404, statusText: "Not Found" })
+    );
+
+    try {
+      await expect(fetchGzipJson("/data/regions/missing.json.gz")).rejects.toThrow("HTTP 404");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 });
 
