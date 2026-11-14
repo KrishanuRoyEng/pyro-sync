@@ -1,6 +1,15 @@
 # PYRO-SYNC
 
-Harmonized MODIS + VIIRS burning activity calendar (NASA Space Apps 2026).
+**Harmonized MODIS + VIIRS Burning Activity Calendar (NASA Space Apps 2026)**
+
+[![Vercel Deployment](https://img.shields.io/badge/Vercel-Live%20Platform-black?style=flat&logo=vercel)](https://pyro-sync-tau.vercel.app)
+[![Launch Video](https://img.shields.io/badge/Launch%20Video-30s%20MP4-amber?style=flat)](brag-output/brag.mp4)
+[![Tests Passing](https://img.shields.io/badge/Tests-23%2F23%20Passed-emerald?style=flat)](__tests__/)
+
+- **Live Web Application**: [https://pyro-sync-tau.vercel.app](https://pyro-sync-tau.vercel.app)
+- **Product & Science Documentation**: [https://pyro-sync-tau.vercel.app/?view=product](https://pyro-sync-tau.vercel.app/?view=product)
+- **GitHub Repository**: [https://github.com/KrishanuRoyEng/pyro-sync](https://github.com/KrishanuRoyEng/pyro-sync)
+- **Launch Video**: [`brag-output/brag.mp4`](brag-output/brag.mp4) (30s horizontal 1080p with audio)
 
 ```bash
 npm install && cp .env.local.example .env.local   # add FIRMS_MAP_KEY
