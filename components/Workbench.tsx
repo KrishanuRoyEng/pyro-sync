@@ -95,12 +95,34 @@ export default function Workbench() {
   const [demoStep, setDemoStep] = useState<number | null>(null);
 
   // View mode: interactive Workbench vs Product Overview & Docs
-  const [viewMode, setViewMode] = useState<"workbench" | "product">("workbench");
+  const [viewMode, setViewMode] = useState<"workbench" | "product">(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("view") === "product" || window.location.hash === "#product") {
+        return "product";
+      }
+    }
+    return "workbench";
+  });
+
+  const handleSetViewMode = (mode: "workbench" | "product") => {
+    setViewMode(mode);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      if (mode === "product") {
+        url.searchParams.set("view", "product");
+      } else {
+        url.searchParams.delete("view");
+      }
+      window.history.replaceState(null, "", url.toString());
+    }
+  };
 
   // Dynamic layout resizers (cells window & map/inspector width)
-  const [dockHeight, setDockHeight] = useState(165);
+  const [dockHeight, setDockHeight] = useState(170);
   const [dockCollapsed, setDockCollapsed] = useState(false);
-  const [mapWidthPct, setMapWidthPct] = useState(65);
+  const [sidebarWidth, setSidebarWidth] = useState(360);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isDraggingRow, setIsDraggingRow] = useState(false);
   const [isDraggingCol, setIsDraggingCol] = useState(false);
 
@@ -109,7 +131,7 @@ export default function Workbench() {
       e.preventDefault();
       setIsDraggingRow(true);
       const startY = e.clientY;
-      const startH = dockCollapsed ? 32 : dockHeight;
+      const startH = dockCollapsed ? 170 : dockHeight;
       const onMouseMove = (moveEvent: MouseEvent) => {
         const deltaY = startY - moveEvent.clientY;
         const newH = Math.max(32, Math.min(480, startH + deltaY));
@@ -137,13 +159,12 @@ export default function Workbench() {
       e.preventDefault();
       setIsDraggingCol(true);
       const startX = e.clientX;
-      const totalW = window.innerWidth;
-      const startPct = mapWidthPct;
+      const startW = sidebarCollapsed ? 360 : sidebarWidth;
       const onMouseMove = (moveEvent: MouseEvent) => {
-        const deltaX = moveEvent.clientX - startX;
-        const deltaPct = (deltaX / totalW) * 100;
-        const newPct = Math.max(35, Math.min(85, startPct + deltaPct));
-        setMapWidthPct(newPct);
+        const deltaX = startX - moveEvent.clientX; // dragging left widens sidebar
+        const newW = Math.max(260, Math.min(650, startW + deltaX));
+        setSidebarCollapsed(false);
+        setSidebarWidth(newW);
       };
       const onMouseUp = () => {
         setIsDraggingCol(false);
@@ -153,7 +174,7 @@ export default function Workbench() {
       window.addEventListener("mousemove", onMouseMove);
       window.addEventListener("mouseup", onMouseUp);
     },
-    [mapWidthPct]
+    [sidebarCollapsed, sidebarWidth]
   );
 
   const dCutoff = useDeferredValue(cutoff);
@@ -423,7 +444,7 @@ export default function Workbench() {
           <span className="grow" />
           <div className="seg">
             <button
-              onClick={() => setViewMode("workbench")}
+              onClick={() => handleSetViewMode("workbench")}
               style={{ background: "var(--amber)", color: "#000", fontWeight: 700 }}
             >
               Launch Telemetry Workbench →
@@ -434,7 +455,7 @@ export default function Workbench() {
           onLaunchWorkbench={(idx, live) => {
             if (idx !== undefined) setRi(idx);
             if (live !== undefined) setLiveMode(live);
-            setViewMode("workbench");
+            handleSetViewMode("workbench");
           }}
         />
       </div>
@@ -442,13 +463,7 @@ export default function Workbench() {
   }
 
   return (
-    <div
-      className={`ws ${isDraggingRow || isDraggingCol ? "resizing" : ""}`}
-      style={{
-        gridTemplateRows: `40px auto 1fr 6px ${dockCollapsed ? 32 : dockHeight}px`,
-        gridTemplateColumns: `${mapWidthPct}% 6px calc(${100 - mapWidthPct}% - 6px)`,
-      }}
-    >
+    <div className={`ws ${isDraggingRow || isDraggingCol ? "resizing" : ""}`}>
       {/* 40px Top Telemetry Bar */}
       <header className="top">
         <strong style={{ letterSpacing: "0.08em" }}>PYRO-SYNC</strong>
@@ -464,7 +479,7 @@ export default function Workbench() {
           </button>
           <button
             aria-pressed={false}
-            onClick={() => setViewMode("product")}
+            onClick={() => handleSetViewMode("product")}
             title="Product Overview, Methodology & Science Documentation"
           >
             📖 Product &amp; Docs
@@ -628,61 +643,82 @@ export default function Workbench() {
         </span>
       </div>
 
-      {/* Map Section (65%) */}
-      <section className="map" aria-label="Map view">
-        <MapWorkbench
-          hexes={displayHexes}
-          center={liveMode && liveData?.mode === "LIVE" ? [20, 0] : region.center}
-          zoom={liveMode && liveData?.mode === "LIVE" ? 2 : region.zoom}
-          selected={hex}
-          onPick={setHex}
-          liveMode={liveMode && liveData?.mode === "LIVE"}
-          selectedWeekLabel={selectedWeekLabel}
-        />
+      {/* Middle Pane: Map (left) + Resizer + Inspector Sidebar (right) */}
+      <div className="middle-pane">
+        <section className="map" aria-label="Map view">
+          <MapWorkbench
+            hexes={displayHexes}
+            center={liveMode && liveData?.mode === "LIVE" ? [20, 0] : region.center}
+            zoom={liveMode && liveData?.mode === "LIVE" ? 2 : region.zoom}
+            selected={hex}
+            onPick={setHex}
+            liveMode={liveMode && liveData?.mode === "LIVE"}
+            selectedWeekLabel={selectedWeekLabel}
+          />
 
-        {/* Fallback Toast */}
-        {!liveMode && regionData?.error && (
-          <div className="status-toast" role="status">
-            <span style={{ color: "var(--amber)", fontWeight: 600 }}>SYNTHETIC DEMO FALLBACK</span>
-            <span style={{ color: "var(--dim)", margin: "0 8px" }}>·</span>
-            <span style={{ color: "var(--dim)" }}>{regionData.error}</span>
-          </div>
-        )}
-        {liveMode && liveError && !liveLoading && (
-          <div className="status-toast" role="status">
-            <span style={{ color: "var(--amber)", fontWeight: 600 }}>CACHED ARCHIVE MODE</span>
-            <span style={{ color: "var(--dim)", margin: "0 8px" }}>·</span>
-            <span style={{ color: "var(--dim)" }}>{liveError}</span>
-            <button
-              onClick={() => {
-                setLiveLoading(true);
-                setLiveError(null);
-                fetch("/api/firms/live?res=4")
-                  .then((r) => r.json())
-                  .then((d) => {
-                    setLiveData(d);
-                    if (d.mode === "CACHED ARCHIVE MODE") setLiveError(d.reason ?? "Upstream unavailable");
-                  })
-                  .catch((e) => setLiveError(e.message))
-                  .finally(() => setLiveLoading(false));
-              }}
-              style={{ marginLeft: 8, height: 20, padding: "0 6px", fontSize: 10 }}
-            >
-              Retry
-            </button>
-          </div>
-        )}
-      </section>
+          {/* Fallback Toast */}
+          {!liveMode && regionData?.error && (
+            <div className="status-toast" role="status">
+              <span style={{ color: "var(--amber)", fontWeight: 600 }}>SYNTHETIC DEMO FALLBACK</span>
+              <span style={{ color: "var(--dim)", margin: "0 8px" }}>·</span>
+              <span style={{ color: "var(--dim)" }}>{regionData.error}</span>
+            </div>
+          )}
+          {liveMode && liveError && !liveLoading && (
+            <div className="status-toast" role="status">
+              <span style={{ color: "var(--amber)", fontWeight: 600 }}>CACHED ARCHIVE MODE</span>
+              <span style={{ color: "var(--dim)", margin: "0 8px" }}>·</span>
+              <span style={{ color: "var(--dim)" }}>{liveError}</span>
+              <button
+                onClick={() => {
+                  setLiveLoading(true);
+                  setLiveError(null);
+                  fetch("/api/firms/live?res=4")
+                    .then((r) => r.json())
+                    .then((d) => {
+                      setLiveData(d);
+                      if (d.mode === "CACHED ARCHIVE MODE") setLiveError(d.reason ?? "Upstream unavailable");
+                    })
+                    .catch((e) => setLiveError(e.message))
+                    .finally(() => setLiveLoading(false));
+                }}
+                style={{ marginLeft: 8, height: 20, padding: "0 6px", fontSize: 10 }}
+              >
+                Retry
+              </button>
+            </div>
+          )}
+        </section>
 
-      {/* Draggable Column Resizer */}
-      <div
-        className={`resizer-col ${isDraggingCol ? "active" : ""}`}
-        onMouseDown={startColResize}
-        title="Drag horizontally to resize map vs inspector"
-      />
+        {/* Draggable Column Resizer */}
+        <div
+          className={`resizer-col ${isDraggingCol ? "active" : ""}`}
+          onMouseDown={startColResize}
+          onDoubleClick={() => setSidebarWidth(360)}
+          title="Drag horizontally to resize inspector sidebar (double-click to reset)"
+        >
+          <div className="resizer-col-handle" />
+        </div>
 
-      {/* Inspector Sidebar */}
-      <aside className="insp" aria-label="Inspector sidebar">
+        {/* Inspector Sidebar (Resizable & Collapsible) */}
+        {!sidebarCollapsed ? (
+          <aside
+            className="insp"
+            aria-label="Inspector sidebar"
+            style={{ width: sidebarWidth }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <span style={{ fontSize: 9, color: "var(--dim)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700 }}>
+                TELEMETRY INSPECTOR
+              </span>
+              <button
+                onClick={() => setSidebarCollapsed(true)}
+                style={{ fontSize: 10, height: 20, padding: "0 6px" }}
+                title="Collapse inspector to maximize map"
+              >
+                Collapse ⇥
+              </button>
+            </div>
         {liveMode ? (
           <>
             <h2>
@@ -938,19 +974,33 @@ export default function Workbench() {
           </>
         )}
       </aside>
-
-      {/* Draggable Row Resizer */}
+    ) : (
       <div
-        className={`resizer-row ${isDraggingRow ? "active" : ""}`}
-        onMouseDown={startRowResize}
-        onDoubleClick={() => setDockCollapsed(!dockCollapsed)}
-        title="Drag up/down to resize cells matrix (double-click to toggle collapse)"
+        className="sidebar-collapsed-bar"
+        onClick={() => setSidebarCollapsed(false)}
+        title="Click to expand Inspector sidebar"
       >
-        <div className="resizer-handle" />
+        <span>⇤ SHOW INSPECTOR</span>
       </div>
+    )}
+  </div>
 
-      {/* Burning Activity Matrix Dock (Resizable & Collapsible) */}
-      <section className="dock" aria-label="Calendar dock">
+  {/* Draggable Row Resizer */}
+  <div
+    className={`resizer-row ${isDraggingRow ? "active" : ""}`}
+    onMouseDown={startRowResize}
+    onDoubleClick={() => setDockCollapsed(!dockCollapsed)}
+    title="Drag up/down to resize cells matrix (double-click to toggle collapse)"
+  >
+    <div className="resizer-handle" />
+  </div>
+
+  {/* Burning Activity Matrix Dock (Resizable & Collapsible) */}
+  <section
+    className="dock"
+    aria-label="Calendar dock"
+    style={{ height: dockCollapsed ? 32 : dockHeight }}
+  >
         <div className="dock-header">
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <h2 style={{ margin: 0, display: "inline-flex", alignItems: "center" }}>

@@ -54,8 +54,23 @@ export default function MapWorkbench({
     overlay.current = new MapboxOverlay({ interleaved: false, layers: [] });
     m.addControl(overlay.current as unknown as maplibregl.IControl);
     map.current = m;
+
+    m.on("load", () => {
+      m.resize();
+    });
+
     return () => m.remove();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ResizeObserver to ensure MapLibre adjusts dynamically whenever container changes size
+  useEffect(() => {
+    if (!el.current) return;
+    const ro = new ResizeObserver(() => {
+      map.current?.resize();
+    });
+    ro.observe(el.current);
+    return () => ro.disconnect();
   }, []);
 
   useEffect(() => {
@@ -102,7 +117,16 @@ export default function MapWorkbench({
   const maxDensity = Math.max(0, ...hexes.map((h) => h.density));
 
   return (
-    <div ref={el} style={{ position: "absolute", inset: 0 }}>
+    <div
+      ref={el}
+      style={{
+        position: "absolute",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+        overflow: "hidden",
+      }}
+    >
       {/* Selected Week Indicator Pill over Map */}
       {selectedWeekLabel && (
         <div
