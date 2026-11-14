@@ -438,7 +438,7 @@ export default function Workbench() {
 
   if (viewMode === "product") {
     return (
-      <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
+      <div className="product-view-container">
         <header className="top" style={{ position: "sticky", top: 0, zIndex: 100 }}>
           <strong style={{ letterSpacing: "0.08em" }}>PYRO-SYNC</strong>
           <span className="pill mono" style={{ borderColor: "var(--green)", color: "var(--green)" }}>
