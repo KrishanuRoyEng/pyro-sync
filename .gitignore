@@ -33,3 +33,4 @@ scripts/request_firms.py
 .env
 data_src/
 data_src/
+.vercel
