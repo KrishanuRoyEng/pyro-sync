@@ -21,6 +21,8 @@ import dataSource, {
 import { gridDisk, latLngToCell } from "h3-js";
 import BurningCalendarMatrix from "./BurningCalendarMatrix";
 import HarmonizationProofChart from "./HarmonizationProofChart";
+import InfoTip from "./InfoTip";
+import ProductLanding from "./ProductLanding";
 
 const MapWorkbench = dynamic(() => import("./MapWorkbench"), { ssr: false });
 
@@ -91,6 +93,68 @@ export default function Workbench() {
 
   // Demo tour active step (null = normal, 1 = The Problem, 2 = Harmonize, 3 = Anomaly)
   const [demoStep, setDemoStep] = useState<number | null>(null);
+
+  // View mode: interactive Workbench vs Product Overview & Docs
+  const [viewMode, setViewMode] = useState<"workbench" | "product">("workbench");
+
+  // Dynamic layout resizers (cells window & map/inspector width)
+  const [dockHeight, setDockHeight] = useState(165);
+  const [dockCollapsed, setDockCollapsed] = useState(false);
+  const [mapWidthPct, setMapWidthPct] = useState(65);
+  const [isDraggingRow, setIsDraggingRow] = useState(false);
+  const [isDraggingCol, setIsDraggingCol] = useState(false);
+
+  const startRowResize = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      setIsDraggingRow(true);
+      const startY = e.clientY;
+      const startH = dockCollapsed ? 32 : dockHeight;
+      const onMouseMove = (moveEvent: MouseEvent) => {
+        const deltaY = startY - moveEvent.clientY;
+        const newH = Math.max(32, Math.min(480, startH + deltaY));
+        if (newH <= 45) {
+          setDockCollapsed(true);
+          setDockHeight(32);
+        } else {
+          setDockCollapsed(false);
+          setDockHeight(newH);
+        }
+      };
+      const onMouseUp = () => {
+        setIsDraggingRow(false);
+        window.removeEventListener("mousemove", onMouseMove);
+        window.removeEventListener("mouseup", onMouseUp);
+      };
+      window.addEventListener("mousemove", onMouseMove);
+      window.addEventListener("mouseup", onMouseUp);
+    },
+    [dockCollapsed, dockHeight]
+  );
+
+  const startColResize = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      setIsDraggingCol(true);
+      const startX = e.clientX;
+      const totalW = window.innerWidth;
+      const startPct = mapWidthPct;
+      const onMouseMove = (moveEvent: MouseEvent) => {
+        const deltaX = moveEvent.clientX - startX;
+        const deltaPct = (deltaX / totalW) * 100;
+        const newPct = Math.max(35, Math.min(85, startPct + deltaPct));
+        setMapWidthPct(newPct);
+      };
+      const onMouseUp = () => {
+        setIsDraggingCol(false);
+        window.removeEventListener("mousemove", onMouseMove);
+        window.removeEventListener("mouseup", onMouseUp);
+      };
+      window.addEventListener("mousemove", onMouseMove);
+      window.addEventListener("mouseup", onMouseUp);
+    },
+    [mapWidthPct]
+  );
 
   const dCutoff = useDeferredValue(cutoff);
   const region = PRESETS[ri];
@@ -348,28 +412,87 @@ export default function Workbench() {
     a.click();
   }, [value, z, region.id]);
 
+  if (viewMode === "product") {
+    return (
+      <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
+        <header className="top" style={{ position: "sticky", top: 0, zIndex: 100 }}>
+          <strong style={{ letterSpacing: "0.08em" }}>PYRO-SYNC</strong>
+          <span className="pill mono" style={{ borderColor: "var(--green)", color: "var(--green)" }}>
+            NASA FIRMS TELEMETRY
+          </span>
+          <span className="grow" />
+          <div className="seg">
+            <button
+              onClick={() => setViewMode("workbench")}
+              style={{ background: "var(--amber)", color: "#000", fontWeight: 700 }}
+            >
+              Launch Telemetry Workbench →
+            </button>
+          </div>
+        </header>
+        <ProductLanding
+          onLaunchWorkbench={(idx, live) => {
+            if (idx !== undefined) setRi(idx);
+            if (live !== undefined) setLiveMode(live);
+            setViewMode("workbench");
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="ws">
+    <div
+      className={`ws ${isDraggingRow || isDraggingCol ? "resizing" : ""}`}
+      style={{
+        gridTemplateRows: `40px auto 1fr 6px ${dockCollapsed ? 32 : dockHeight}px`,
+        gridTemplateColumns: `${mapWidthPct}% 6px calc(${100 - mapWidthPct}% - 6px)`,
+      }}
+    >
       {/* 40px Top Telemetry Bar */}
       <header className="top">
         <strong style={{ letterSpacing: "0.08em" }}>PYRO-SYNC</strong>
 
+        {/* View Switcher */}
+        <div className="seg" role="group" aria-label="Page view switcher">
+          <button
+            aria-pressed={true}
+            style={{ background: "var(--core)", color: "#000", fontWeight: 700 }}
+            title="Interactive Telemetry Workbench"
+          >
+            🛰️ Workbench
+          </button>
+          <button
+            aria-pressed={false}
+            onClick={() => setViewMode("product")}
+            title="Product Overview, Methodology & Science Documentation"
+          >
+            📖 Product &amp; Docs
+          </button>
+        </div>
+
         {/* Region selector */}
-        <select
-          aria-label="Select Region Preset"
-          value={ri}
-          onChange={(e) => {
-            setRi(+e.target.value);
-            setHex(null);
-          }}
-          disabled={liveMode}
-        >
-          {PRESETS.map((p, i) => (
-            <option key={p.id} value={i}>
-              {p.name}
-            </option>
-          ))}
-        </select>
+        <div style={{ display: "inline-flex", alignItems: "center" }}>
+          <select
+            aria-label="Select Region Preset"
+            value={ri}
+            onChange={(e) => {
+              setRi(+e.target.value);
+              setHex(null);
+            }}
+            disabled={liveMode}
+          >
+            {PRESETS.map((p, i) => (
+              <option key={p.id} value={i}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+          <InfoTip
+            title="Benchmark Region Preset"
+            desc="Select between localized high-resolution (res 7) benchmark regions (Punjab agricultural, California wildfire, Amazon deforestation) or global (res 3) telemetry."
+          />
+        </div>
 
         {/* Live vs Archive Toggle */}
         <div className="seg" role="group" aria-label="Data mode">
@@ -387,6 +510,10 @@ export default function Workbench() {
           >
             Live (24h)
           </button>
+          <InfoTip
+            title="Data Feed Mode"
+            desc="Archive: 26-year calibrated NASA FIRMS multi-satellite historical record (2000–2026). Live: Real-time 24h stream from NASA FIRMS NRT."
+          />
         </div>
 
         {/* Status Pill */}
@@ -436,6 +563,11 @@ export default function Workbench() {
           >
             Harmonized index
           </button>
+          <InfoTip
+            title="Harmonization Mode"
+            desc="Raw: Unadjusted detections (VIIRS 375m pixels cause false 5x surge). Harmonized: Grouped by H3 cells, filtered by sensitivity cutoff, and normalized by active satellite overpasses."
+            formula="Index = Σ(FRP) / N_sats"
+          />
         </div>
 
         <span className="grow" />
@@ -463,14 +595,23 @@ export default function Workbench() {
           >
             3. Anomaly
           </button>
+          <InfoTip
+            title="3-Step Demo Tour"
+            desc="Step 1: See raw sensor disparity jump in 2012. Step 2: Harmonize to reveal true thermal energy. Step 3: Jump to historical record anomaly."
+          />
         </div>
 
         <button onClick={jumpToBiggestAnomaly} title="Jump to the highest Z-score week in the record">
-          ⚡ Jump to biggest anomaly
+          ⚡ Jump to anomaly
+          <InfoTip
+            title="Peak Anomaly Jump"
+            desc="Selects the single calendar week with the highest statistical anomaly Z-score across the entire 26-year historical record."
+            formula="Z_max = max(Z_{y,w})"
+          />
         </button>
 
         <button onClick={() => setShowGlossary(true)} title="Open Glossary of terms">
-          📖 Glossary / Info
+          📖 Glossary
         </button>
 
         <button onClick={exportCsv}>Export CSV</button>
@@ -533,32 +674,66 @@ export default function Workbench() {
         )}
       </section>
 
-      {/* Inspector Sidebar (35%) */}
+      {/* Draggable Column Resizer */}
+      <div
+        className={`resizer-col ${isDraggingCol ? "active" : ""}`}
+        onMouseDown={startColResize}
+        title="Drag horizontally to resize map vs inspector"
+      />
+
+      {/* Inspector Sidebar */}
       <aside className="insp" aria-label="Inspector sidebar">
         {liveMode ? (
           <>
-            <h2>Global Live Telemetry (Last 24 Hours)</h2>
+            <h2>
+              Global Live Telemetry (Last 24 Hours)
+              <InfoTip
+                title="Global NRT Feed"
+                desc="Real-time satellite active fire detections streamed directly from NASA FIRMS NRT endpoints within the last 24 hours."
+              />
+            </h2>
             <p className="panel-desc">Real-time H3 resolution-4 aggregates fetched from NASA FIRMS NRT.</p>
 
             {liveData?.mode === "LIVE" ? (
               <>
                 <div className="kv mono">
-                  <span>Total detections</span>
+                  <span style={{ display: "inline-flex", alignItems: "center" }}>
+                    Total detections
+                    <InfoTip title="Total Detections (24h)" desc="Sum of all individual active fire pixels detected across the globe in the last 24 hours." />
+                  </span>
                   <span>{liveData.total_detections.toLocaleString()}</span>
-                  <span>Active H3 cells (res 4)</span>
+                  <span style={{ display: "inline-flex", alignItems: "center" }}>
+                    Active H3 cells (res 4)
+                    <InfoTip title="Active Hexagonal Cells" desc="Unique H3 resolution-4 hexagonal cells (~1,770 km²) containing confirmed fire energy." />
+                  </span>
                   <span>{liveData.cells.length.toLocaleString()}</span>
                 </div>
 
-                <h2>Raw Hotspot Counts (Sensor Disparity)</h2>
+                <h2>
+                  Raw Hotspot Counts (Sensor Disparity)
+                  <InfoTip
+                    title="Sensor Count Disparity"
+                    desc="Raw detections uncorrected for VIIRS 375m pixel fragmentation. Because VIIRS pixels are 7x smaller than MODIS 1km pixels, a single fire produces multiple VIIRS counts."
+                  />
+                </h2>
                 <p className="panel-desc">Raw pixels uncorrected for VIIRS 375 m pixel fragmentation.</p>
                 <div className="kv mono">
-                  <span>MODIS (Terra + Aqua)</span>
+                  <span style={{ display: "inline-flex", alignItems: "center" }}>
+                    MODIS (Terra + Aqua)
+                    <InfoTip title="MODIS Detections" desc="1 km nadir resolution sensors aboard NASA Terra (10:30) and Aqua (13:30)." />
+                  </span>
                   <span>{(liveData.per_sensor.raw.MODIS ?? 0).toLocaleString()}</span>
-                  <span>VIIRS (SNPP + N20 + N21)</span>
+                  <span style={{ display: "inline-flex", alignItems: "center" }}>
+                    VIIRS (SNPP + N20 + N21)
+                    <InfoTip title="VIIRS Detections" desc="375 m nadir resolution sensors aboard Suomi-NPP, NOAA-20, and NOAA-21." />
+                  </span>
                   <span style={{ color: "var(--amber)", fontWeight: 600 }}>
                     {(liveData.per_sensor.raw.VIIRS ?? 0).toLocaleString()}
                   </span>
-                  <span>Disparity ratio</span>
+                  <span style={{ display: "inline-flex", alignItems: "center" }}>
+                    Disparity ratio
+                    <InfoTip title="Count Disparity Multiplier" desc="Ratio of raw VIIRS detections to raw MODIS detections over the same fire events." formula="Ratio = N_VIIRS / N_MODIS" />
+                  </span>
                   <span style={{ color: "var(--red)", fontWeight: 600 }}>
                     {liveData.per_sensor.raw.MODIS
                       ? ((liveData.per_sensor.raw.VIIRS ?? 0) / liveData.per_sensor.raw.MODIS).toFixed(1) + "× more VIIRS"
@@ -566,14 +741,24 @@ export default function Workbench() {
                   </span>
                 </div>
 
-                <h2>Harmonized Thermal Index (Agreement)</h2>
+                <h2>
+                  Harmonized Thermal Index (Agreement)
+                  <InfoTip
+                    title="Harmonized Thermal Index"
+                    desc="Fire Radiative Power (MW) normalized by active satellites after spatial H3 cell grouping, bringing MODIS and VIIRS into physical agreement."
+                    formula="Index = Σ(FRP) / N_sats"
+                  />
+                </h2>
                 <p className="panel-desc">Energy normalized by active satellites after spatial grouping.</p>
                 <div className="kv mono">
                   <span>MODIS Thermal Index</span>
                   <span>{(liveData.per_sensor.harmonized.MODIS ?? 0).toLocaleString()} MW</span>
                   <span>VIIRS Thermal Index</span>
                   <span>{(liveData.per_sensor.harmonized.VIIRS ?? 0).toLocaleString()} MW</span>
-                  <span>Combined Index</span>
+                  <span style={{ display: "inline-flex", alignItems: "center" }}>
+                    Combined Index
+                    <InfoTip title="Combined Thermal Energy" desc="Unified thermal energy rating across all active satellites." />
+                  </span>
                   <span style={{ color: "var(--core)", fontWeight: 600 }}>
                     {liveData.harmonized_index.toLocaleString()} MW
                   </span>
@@ -587,7 +772,13 @@ export default function Workbench() {
           </>
         ) : (
           <>
-            <h2>Selected Week Telemetry</h2>
+            <h2>
+              Selected Week Telemetry
+              <InfoTip
+                title="Weekly Telemetry"
+                desc="Detailed thermal and statistical metrics for the selected calendar week in the historical archive."
+              />
+            </h2>
             <p className="panel-desc">{selectedWeekLabel}</p>
 
             {isSelectedWeekGap ? (
@@ -602,33 +793,63 @@ export default function Workbench() {
               </div>
             ) : (
               <div className="kv mono">
-                <span>Observation Period</span>
+                <span style={{ display: "inline-flex", alignItems: "center" }}>
+                  Observation Period
+                  <InfoTip title="Calendar Week" desc="Calendar week of the year (1 to 52). Week 1 starts Jan 1; Week 52 contains remaining days." />
+                </span>
                 <span>{selectedYear} Week {sel.w + 1}</span>
-                <span>Z-Score (Anomaly)</span>
+                <span style={{ display: "inline-flex", alignItems: "center" }}>
+                  Z-Score (Anomaly)
+                  <InfoTip title="Rolling Anomaly Z-Score" desc="Statistical deviation relative to multi-decadal historical mean for this calendar week. Z ≥ +2.0 indicates an extreme fire event." formula="Z = (Index - μ_w) / σ_w" />
+                </span>
                 <span className={zSel >= zThr ? "badge crit" : ""}>
                   {zSel >= 0 ? "+" : ""}{zSel.toFixed(2)}σ
                 </span>
-                <span>Raw Hotspot Count</span>
+                <span style={{ display: "inline-flex", alignItems: "center" }}>
+                  Raw Hotspot Count
+                  <InfoTip title="Raw Detection Hotspots" desc="Total unaggregated satellite pixels flagged as active fires. Severely inflated by VIIRS 375m pixels." />
+                </span>
                 <span>{stat.raw.toLocaleString()}</span>
-                <span>Active H3 Cells</span>
+                <span style={{ display: "inline-flex", alignItems: "center" }}>
+                  Active H3 Cells
+                  <InfoTip title="Active Hexagonal Cells" desc="Number of discrete H3 hexagonal cells with active fire detections in this week." />
+                </span>
                 <span>
                   {hexes.length.toLocaleString()}{" "}
                   {region.id === "world" ? `(res ${globalYearData?.res ?? 3})` : `(res ${res})`}
                 </span>
-                <span>Harmonized Thermal Index</span>
+                <span style={{ display: "inline-flex", alignItems: "center" }}>
+                  Harmonized Thermal Index
+                  <InfoTip title="Harmonized Thermal Index (MW)" desc="Total Fire Radiative Power across grouped cells divided by active satellites orbiting that week." formula="Index = Σ FRP / N_active" />
+                </span>
                 <span>{stat.index.toFixed(1)} MW</span>
-                <span>Fire Regime</span>
+                <span style={{ display: "inline-flex", alignItems: "center" }}>
+                  Fire Regime
+                  <InfoTip title="Fire Regime Classification" desc="Automated classification: BACKGROUND (low baseline), ELEVATED (moderate cluster), or EXTREME (major wildfire outbreak)." />
+                </span>
                 <span className="badge">{regime}</span>
-                <span>Hexagon Filter</span>
+                <span style={{ display: "inline-flex", alignItems: "center" }}>
+                  Hexagon Filter
+                  <InfoTip title="Localized Hexagon Filter" desc="Click any hexagon on the map to filter the matrix and proof charts specifically to that localized cell." />
+                </span>
                 <span>{hex ? hex.slice(0, 11) + "…" : "All cells (click map hex)"}</span>
               </div>
             )}
 
-            <h2>Harmonization Controls</h2>
+            <h2>
+              Harmonization Controls
+              <InfoTip
+                title="Tuning Parameters"
+                desc="Interactive calibration controls: spatial resolution grid, VIIRS sensitivity cutoff, and overpass effort normalization."
+              />
+            </h2>
             <p className="panel-desc">Tune spatial aggregation, sensitivity cutoff, and overpass normalization.</p>
 
             <div className="row">
-              <label htmlFor="res">H3 Resolution</label>
+              <label htmlFor="res" style={{ display: "inline-flex", alignItems: "center" }}>
+                H3 Resolution
+                <InfoTip title="Spatial Hexagon Resolution" desc="H3 discrete spatial index: res 5 (~253 km²), res 6 (~36 km²), res 7 (~5.16 km²). Res 7 is recommended for regional fidelity." />
+              </label>
               <div className="seg">
                 {([5, 6, 7] as const).map((r) => (
                   <button
@@ -647,7 +868,10 @@ export default function Workbench() {
             </div>
 
             <div className="row">
-              <label htmlFor="cut">VIIRS FRP Cutoff</label>
+              <label htmlFor="cut" style={{ display: "inline-flex", alignItems: "center" }}>
+                VIIRS FRP Cutoff
+                <InfoTip title="VIIRS Sensitivity Cutoff" desc="Applied to cell total FRP to filter out small fires that MODIS cannot detect, preventing low-energy baseline inflation." formula="cutoff = 0.0 - 6.0 MW" />
+              </label>
               <span className="mono">{cutoff.toFixed(1)} MW</span>
             </div>
             <input
@@ -662,13 +886,19 @@ export default function Workbench() {
             />
 
             <div className="row">
-              <span>Overpass Normalization</span>
+              <span style={{ display: "inline-flex", alignItems: "center" }}>
+                Overpass Normalization
+                <InfoTip title="Overpass Effort Normalization" desc="Dividing by the active satellite count prevents false fire increases simply from adding more satellites into orbit." formula="div = max(1, N_active)" />
+              </span>
               <button aria-pressed={normalize} onClick={() => setNormalize(!normalize)}>
                 {normalize ? "Active satellites" : "Off"}
               </button>
             </div>
 
-            <h2>Harmonization Proof (Long-term Trend)</h2>
+            <h2>
+              Harmonization Proof (Long-term Trend)
+              <InfoTip title="Decadal Proof Chart" desc="Compares yearly raw detection counts to the harmonized index across 2000–2026. Pre-VIIRS baseline (2003–2011) is normalized to 1.0." />
+            </h2>
             <p className="panel-desc">NASA global totals (2000–2017). Normalized to 2003–2011 baseline = 1.0.</p>
             {proofData && (
               <HarmonizationProofChart
@@ -709,44 +939,90 @@ export default function Workbench() {
         )}
       </aside>
 
-      {/* Burning Calendar Dock (240px) */}
+      {/* Draggable Row Resizer */}
+      <div
+        className={`resizer-row ${isDraggingRow ? "active" : ""}`}
+        onMouseDown={startRowResize}
+        onDoubleClick={() => setDockCollapsed(!dockCollapsed)}
+        title="Drag up/down to resize cells matrix (double-click to toggle collapse)"
+      >
+        <div className="resizer-handle" />
+      </div>
+
+      {/* Burning Activity Matrix Dock (Resizable & Collapsible) */}
       <section className="dock" aria-label="Calendar dock">
-        <div className="row" style={{ margin: "0 0 4px" }}>
-          <div>
-            <h2 style={{ margin: 0 }}>
+        <div className="dock-header">
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <h2 style={{ margin: 0, display: "inline-flex", alignItems: "center" }}>
               Burning Activity Matrix · {region.name}
+              <InfoTip
+                title="26-Year Burning Activity Matrix"
+                desc="Weekly thermal activity across 2000–2026. Each cell represents one calendar week (W1–W52). Color indicates normalized fire index or anomaly Z-score."
+              />
             </h2>
             <span style={{ fontSize: 10, color: "var(--dim)" }}>
-              {selectedWeekLabel} · Click any week cell to inspect
+              {dockCollapsed ? "(Collapsed — click Expand to view matrix)" : selectedWeekLabel}
             </span>
           </div>
-          <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <label htmlFor="zt" className="mono">
-              Anomaly Z ≥ {zThr.toFixed(1)}σ
-            </label>
-            <input
-              id="zt"
-              type="range"
-              min={0}
-              max={4}
-              step={0.1}
-              value={zThr}
-              onChange={(e) => setZThr(+e.target.value)}
-              style={{ padding: 0 }}
-            />
-            <button aria-pressed={onlyAnom} onClick={() => setOnlyAnom(!onlyAnom)}>
-              Anomalies only
+
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {!dockCollapsed && (
+              <>
+                <label htmlFor="zt" className="mono" style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
+                  Z ≥ {zThr.toFixed(1)}σ
+                  <InfoTip
+                    title="Anomaly Threshold"
+                    desc="Filter matrix to highlight weeks with fire activity exceeding this many standard deviations above historical mean."
+                    formula="Z = (x - μ_w) / σ_w"
+                  />
+                </label>
+                <input
+                  id="zt"
+                  type="range"
+                  min={0}
+                  max={4}
+                  step={0.1}
+                  value={zThr}
+                  onChange={(e) => setZThr(+e.target.value)}
+                  style={{ padding: 0, width: 70 }}
+                />
+                <button
+                  aria-pressed={onlyAnom}
+                  onClick={() => setOnlyAnom(!onlyAnom)}
+                  style={{ fontSize: 10, height: 22 }}
+                >
+                  Anomalies only
+                </button>
+              </>
+            )}
+
+            <button
+              onClick={() => setDockCollapsed(!dockCollapsed)}
+              style={{
+                fontSize: 10,
+                height: 22,
+                padding: "0 8px",
+                background: dockCollapsed ? "var(--amber)" : "var(--bg)",
+                color: dockCollapsed ? "#000" : "var(--text)",
+                fontWeight: 600,
+              }}
+              title={dockCollapsed ? "Expand matrix cells window" : "Collapse matrix cells to maximize map"}
+            >
+              {dockCollapsed ? "⤢ Expand Cells Matrix" : "— Collapse Cells (View Map)"}
             </button>
-          </span>
+          </div>
         </div>
-        <BurningCalendarMatrix
-          z={z}
-          value={value}
-          selected={sel}
-          threshold={zThr}
-          onlyAnomalies={onlyAnom}
-          onSelect={(y, w) => setSel({ y, w })}
-        />
+
+        {!dockCollapsed && (
+          <BurningCalendarMatrix
+            z={z}
+            value={value}
+            selected={sel}
+            threshold={zThr}
+            onlyAnomalies={onlyAnom}
+            onSelect={(y, w) => setSel({ y, w })}
+          />
+        )}
       </section>
 
       {/* Glossary Modal / Drawer */}
