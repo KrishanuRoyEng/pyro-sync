@@ -22,100 +22,118 @@ export default function ProductLanding({ onLaunchWorkbench }: ProductLandingProp
     <div className="product-page-wrapper">
       {/* Product Hero */}
       <section className="product-hero">
-        <div className="hero-tag mono">
-          <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "var(--amber)", marginRight: 6 }} />
-          NASA EARTHDATA · SATELLITE ACTIVE FIRE CALIBRATION (2000–2026)
-        </div>
         <h1 className="hero-title">
-          Harmonizing Decadal Satellite Wildfire Telemetry Across MODIS &amp; VIIRS Generations
+          Harmonizing Decadal Satellite Wildfire Telemetry{" "}
+          <span className="hero-title-highlight">Across MODIS &amp; VIIRS Generations</span>
         </h1>
         <p className="hero-lead">
-          When NASA introduced the 375&nbsp;m VIIRS sensor in 2012, raw active fire detections artificially jumped{" "}
-          <strong style={{ color: "var(--amber)", fontWeight: 700 }}>4.9×</strong> due to sub-pixel fire fragmentation.
-          PYRO-SYNC reconstructs continuous decadal fire records using discrete H3 hexagonal clustering, cell-level
+          When NASA introduced the 375&nbsp;m VIIRS sensor in 2012, raw active fire detections artificially surged{" "}
+          <strong className="lead-stat-highlight">4.9×</strong> due to sub-pixel fire fragmentation.
+          PYRO-SYNC reconstructs continuous, decadal fire energy records using discrete H3 hexagonal clustering, cell-level
           energy thresholds, and operational overpass normalization.
         </p>
 
         <div className="hero-cta-row">
           <button
-            className="btn-primary"
+            className="btn-primary-glow"
             onClick={() => onLaunchWorkbench(0, false)}
           >
-            Launch Telemetry Workbench →
+            <span>Launch Telemetry Workbench</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
           </button>
           <button
-            className="btn-secondary"
+            className="btn-glass"
             onClick={() => onLaunchWorkbench(0, true)}
           >
-            ● Live 24h Global Feed
+            <span className="live-dot-pulse" />
+            <span>Live 24h Global Feed</span>
           </button>
           <button
-            className="btn-secondary"
+            className="btn-ghost"
             onClick={() => setActiveTab("pipeline")}
           >
-            Mathematical Formulation
+            <span>Mathematical Formulation</span>
           </button>
         </div>
 
         {/* Telemetry Metric Highlights */}
-        <div className="hero-stats mono">
-          <div className="hero-stat-card">
-            <span className="stat-num" style={{ color: "var(--cyan)" }}>26 Years</span>
-            <span className="stat-label">Continuous Temporal Telemetry (2000–2026)</span>
+        <div className="hero-stats-grid">
+          <div className="stat-card stat-cyan">
+            <div className="stat-card-badge">TEMPORAL CONTINUITY</div>
+            <div className="stat-num-display">
+              26 <span className="stat-unit">Years</span>
+            </div>
+            <p className="stat-sublabel">2000–2026 Continuous Telemetry Baseline</p>
           </div>
-          <div className="hero-stat-card">
-            <span className="stat-num" style={{ color: "var(--amber)" }}>5 Satellites</span>
-            <span className="stat-label">Terra, Aqua, Suomi-NPP, NOAA-20, NOAA-21</span>
+
+          <div className="stat-card stat-amber">
+            <div className="stat-card-badge">CONSTELLATION</div>
+            <div className="stat-num-display">
+              5 <span className="stat-unit">Satellites</span>
+            </div>
+            <p className="stat-sublabel">Terra, Aqua, Suomi-NPP, NOAA-20, NOAA-21</p>
           </div>
-          <div className="hero-stat-card">
-            <span className="stat-num" style={{ color: "#FFFFFF" }}>57.7M Hotspots</span>
-            <span className="stat-label">Verified NASA FIRMS Quality-Filtered Observations</span>
+
+          <div className="stat-card stat-core">
+            <div className="stat-card-badge">PROCESSED TELEMETRY</div>
+            <div className="stat-num-display">
+              57.7M <span className="stat-unit">Hotspots</span>
+            </div>
+            <p className="stat-sublabel">Verified NASA FIRMS Observations</p>
           </div>
-          <div className="hero-stat-card">
-            <span className="stat-num" style={{ color: "var(--green)" }}>±8% Energy Match</span>
-            <span className="stat-label">Validated Equal-Energy Sensor Invariance</span>
+
+          <div className="stat-card stat-emerald">
+            <div className="stat-card-badge">ENERGY CONSERVATION</div>
+            <div className="stat-num-display">
+              ±8% <span className="stat-unit">Invariance</span>
+            </div>
+            <p className="stat-sublabel">Validated Sensor-Invariant Radiative Energy</p>
           </div>
         </div>
       </section>
 
       {/* Navigation Sub-bar */}
-      <nav className="product-nav" aria-label="Documentation sections">
-        <button
-          className={activeTab === "physics" ? "active" : ""}
-          onClick={() => setActiveTab("physics")}
-        >
-          Instrument Physics
-        </button>
-        <button
-          className={activeTab === "paradox" ? "active" : ""}
-          onClick={() => setActiveTab("paradox")}
-        >
-          The 4.9× Disparity Paradox
-        </button>
-        <button
-          className={activeTab === "pipeline" ? "active" : ""}
-          onClick={() => setActiveTab("pipeline")}
-        >
-          Harmonizer Formulation
-        </button>
-        <button
-          className={activeTab === "benchmarks" ? "active" : ""}
-          onClick={() => setActiveTab("benchmarks")}
-        >
-          Field Benchmarks
-        </button>
-        <button
-          className={activeTab === "validation" ? "active" : ""}
-          onClick={() => setActiveTab("validation")}
-        >
-          Empirical Validation
-        </button>
-        <button
-          className={activeTab === "engineering" ? "active" : ""}
-          onClick={() => setActiveTab("engineering")}
-        >
-          System Engineering
-        </button>
+      <nav className="product-nav-dock" aria-label="Documentation sections">
+        <div className="nav-dock-scroller">
+          <button
+            className={`nav-dock-btn ${activeTab === "physics" ? "active" : ""}`}
+            onClick={() => setActiveTab("physics")}
+          >
+            <span>Instrument Physics</span>
+          </button>
+          <button
+            className={`nav-dock-btn ${activeTab === "paradox" ? "active" : ""}`}
+            onClick={() => setActiveTab("paradox")}
+          >
+            <span>The 4.9× Paradox</span>
+          </button>
+          <button
+            className={`nav-dock-btn ${activeTab === "pipeline" ? "active" : ""}`}
+            onClick={() => setActiveTab("pipeline")}
+          >
+            <span>Harmonizer Math</span>
+          </button>
+          <button
+            className={`nav-dock-btn ${activeTab === "benchmarks" ? "active" : ""}`}
+            onClick={() => setActiveTab("benchmarks")}
+          >
+            <span>Field Benchmarks</span>
+          </button>
+          <button
+            className={`nav-dock-btn ${activeTab === "validation" ? "active" : ""}`}
+            onClick={() => setActiveTab("validation")}
+          >
+            <span>Empirical Validation</span>
+          </button>
+          <button
+            className={`nav-dock-btn ${activeTab === "engineering" ? "active" : ""}`}
+            onClick={() => setActiveTab("engineering")}
+          >
+            <span>System Engineering</span>
+          </button>
+        </div>
       </nav>
 
       {/* Content Container */}
@@ -227,118 +245,94 @@ export default function ProductLanding({ onLaunchWorkbench }: ProductLandingProp
             </p>
 
             {/* Visual Pixel Comparison */}
-            <div className="doc-card" style={{ margin: "24px 0" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div className="comparison-visual-card">
+              <div className="comparison-header">
                 <div>
-                  <h3 style={{ margin: 0 }}>Ground Footprint Comparison: 1 km² Fire Area</h3>
-                  <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>
-                    Physical Fire Release: 10.0 MW Radiative Power across 1.0 km²
-                  </span>
+                  <h3 className="comparison-title">Ground Footprint Optical Comparison: 1 km² Fire Area</h3>
+                  <p className="comparison-subtitle">
+                    Physical Fire Release: 10.0 MW Radiative Power across an identical 1.0 km² ground surface
+                  </p>
                 </div>
-                <span className="badge">4.9× COUNT ARTIFACT</span>
+                <div className="sensor-artifact-pill">
+                  <span className="pill-dot-warning" />
+                  <span>4.9× RAW COUNT DISPARITY</span>
+                </div>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24, alignItems: "center" }}>
-                {/* MODIS Diagram */}
-                <div style={{ background: "#0B0E14", border: "2px solid #334155", borderRadius: 8, padding: 18, textAlign: "center" }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: "#FFFFFF", marginBottom: 4 }}>
-                    MODIS (1,000 m × 1,000 m Pixel)
+              <div className="comparison-grid">
+                {/* MODIS Sensor Footprint */}
+                <div className="sensor-panel sensor-modis">
+                  <div className="sensor-panel-header">
+                    <span className="sensor-tag tag-modis">MODIS APERTURE</span>
+                    <span className="sensor-dim-label">1,000 m × 1,000 m GIFOV</span>
                   </div>
-                  <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 12 }}>
-                    Area: 1.0 km² · Detections: <strong style={{ color: "#FFF" }}>1 Detection (10.0 MW)</strong>
+                  
+                  <div className="sensor-footprint-box box-modis">
+                    <div className="footprint-reticle-crosshair" />
+                    <div className="footprint-fire-centroid centroid-modis">
+                      <div className="centroid-pulse" />
+                      <span className="centroid-label">10.0 MW</span>
+                    </div>
+                    <span className="footprint-scale-tag">1 km² Area</span>
                   </div>
-                  <div
-                    style={{
-                      width: 180,
-                      height: 180,
-                      margin: "0 auto",
-                      border: "2px dashed #64748B",
-                      borderRadius: 6,
-                      background: "rgba(255, 255, 255, 0.03)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      position: "relative",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: 52,
-                        height: 52,
-                        borderRadius: "50%",
-                        background: "radial-gradient(circle, #EF4444 0%, #B91C1C 70%, transparent 100%)",
-                        boxShadow: "0 0 18px rgba(239, 68, 68, 0.8)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "#FFF",
-                        fontWeight: 800,
-                        fontSize: 11,
-                      }}
-                    >
-                      10 MW
+
+                  <div className="sensor-metric-summary">
+                    <div className="metric-row">
+                      <span className="metric-name">Raw Hotspot Output</span>
+                      <strong className="metric-val val-white">1 Detection</strong>
+                    </div>
+                    <div className="metric-row">
+                      <span className="metric-name">Radiative Energy (FRP)</span>
+                      <strong className="metric-val val-cyan">10.0 MW Total</strong>
                     </div>
                   </div>
                 </div>
 
-                <div style={{ textAlign: "center", color: "var(--amber)", fontSize: 22, fontWeight: 800 }}>
-                  VS
+                <div className="comparison-divider-column">
+                  <div className="comparison-badge-vs">VS</div>
+                  <span className="divider-label">SENSOR TRANSITION</span>
                 </div>
 
-                {/* VIIRS Diagram */}
-                <div style={{ background: "#0B0E14", border: "2px solid #0284C7", borderRadius: 8, padding: 18, textAlign: "center" }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: "var(--cyan)", marginBottom: 4 }}>
-                    VIIRS (375 m × 375 m Pixels)
+                {/* VIIRS Sensor Footprint */}
+                <div className="sensor-panel sensor-viirs">
+                  <div className="sensor-panel-header">
+                    <span className="sensor-tag tag-viirs">VIIRS (I-BAND) APERTURE</span>
+                    <span className="sensor-dim-label">375 m × 375 m GIFOV</span>
                   </div>
-                  <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 12 }}>
-                    Area: 0.14 km² each · Detections: <strong style={{ color: "var(--amber)" }}>7 Detections (1.4 MW each)</strong>
+
+                  <div className="sensor-footprint-box box-viirs">
+                    <div className="viirs-subpixel-grid">
+                      {[1, 2, 3, 4, 5, 6, 7].map((num) => (
+                        <div key={num} className="viirs-subpixel active-fire">
+                          <span className="subpixel-energy">1.4 MW</span>
+                        </div>
+                      ))}
+                      <div className="viirs-subpixel subpixel-empty" />
+                      <div className="viirs-subpixel subpixel-empty" />
+                    </div>
+                    <span className="footprint-scale-tag">375 m Grid (0.14 km² / cell)</span>
                   </div>
-                  <div
-                    style={{
-                      width: 180,
-                      height: 180,
-                      margin: "0 auto",
-                      border: "2px dashed #0284C7",
-                      borderRadius: 6,
-                      background: "rgba(2, 132, 199, 0.05)",
-                      display: "grid",
-                      gridTemplateColumns: "repeat(3, 1fr)",
-                      gap: 4,
-                      padding: 6,
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    {[1, 2, 3, 4, 5, 6, 7].map((num) => (
-                      <div
-                        key={num}
-                        style={{
-                          height: 48,
-                          borderRadius: 4,
-                          background: "linear-gradient(180deg, #F97316 0%, #C2410C 100%)",
-                          border: "1px solid #FDBA74",
-                          boxShadow: "0 0 8px rgba(249, 115, 22, 0.6)",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: "#FFF",
-                          fontWeight: 700,
-                          fontSize: 10,
-                        }}
-                      >
-                        1.4 MW
-                      </div>
-                    ))}
-                    <div style={{ height: 48, borderRadius: 4, border: "1px dashed #334155" }} />
-                    <div style={{ height: 48, borderRadius: 4, border: "1px dashed #334155" }} />
+
+                  <div className="sensor-metric-summary">
+                    <div className="metric-row">
+                      <span className="metric-name">Raw Hotspot Output</span>
+                      <strong className="metric-val val-amber">7 Detections (+600%)</strong>
+                    </div>
+                    <div className="metric-row">
+                      <span className="metric-name">Radiative Energy (FRP)</span>
+                      <strong className="metric-val val-cyan">10.0 MW Total</strong>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div style={{ marginTop: 16, background: "rgba(0, 0, 0, 0.35)", padding: "12px 16px", borderRadius: 6, fontSize: 12.5, color: "#CBD5E1" }}>
-                <strong>Physical Analysis:</strong> Both satellite instruments intercepted the exact same total thermal energy (10.0 MW).
-                MODIS integrated that energy into <strong>1 detection</strong>; VIIRS partitioned it into <strong>7 discrete detections</strong>.
-                Comparing raw detection totals across sensor boundaries produces a 700% counting error.
+              <div className="comparison-takeaway-bar">
+                <div className="takeaway-icon">⚡</div>
+                <div className="takeaway-text">
+                  <strong>Physical Telemetry Invariance:</strong> Both sensors observe identical total thermal radiative output (10.0 MW).
+                  MODIS aggregates it into <strong>1 detection</strong>; VIIRS fractures it into <strong>7 discrete detections</strong>.
+                  PYRO-SYNC resolves this disparity by quantizing detections into discrete H3 hexagons and enforcing a cell-level energy floor, guaranteeing <strong>1.00 ± 0.08</strong> conservation.
+                </div>
               </div>
             </div>
 
