@@ -1,8 +1,29 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import katex from "katex";
 
 interface ProductLandingProps {
   onLaunchWorkbench: (regionIndex?: number, live?: boolean) => void;
+}
+
+function TeX({ math, display = false, className = "" }: { math: string; display?: boolean; className?: string }) {
+  const html = useMemo(() => {
+    try {
+      return katex.renderToString(math, {
+        displayMode: display,
+        throwOnError: false,
+      });
+    } catch {
+      return math;
+    }
+  }, [math, display]);
+
+  return (
+    <span
+      className={`katex-render ${display ? "katex-display-box" : "katex-inline"} ${className}`}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
 }
 
 export default function ProductLanding({ onLaunchWorkbench }: ProductLandingProps) {
@@ -351,88 +372,97 @@ export default function ProductLanding({ onLaunchWorkbench }: ProductLandingProp
         {/* TAB 3: HARMONIZER FORMULATION */}
         {activeTab === "pipeline" && (
           <article className="prose-section">
-            <h2>The 4-Stage Harmonization Mathematics</h2>
+            <h2>The 4-Stage Harmonization Framework</h2>
             <p>
               PYRO-SYNC implements a deterministic mathematical framework in <code>lib/harmonizer.ts</code> to collapse
               spatial fragmentation, enforce radiative sensitivity parity, and normalize orbital overpass density:
             </p>
 
-            <div className="diagram-stage-grid">
-              <div className="stage-step-card">
-                <span className="stage-badge">Stage 01</span>
-                <h4>H3 Spatial Quantization</h4>
-                <p>Maps lat/lon point coordinates into Uber H3 Resolution-7 discrete hexagons (~5.16 km²). Groups by (hex, day, satellite).</p>
-                <code className="infotip-formula mono">h = latLngToCell(lat, lon, res = 7)</code>
+            {/* 2 Rows x 2 Boxes Mathematical Grid */}
+            <div className="math-2x2-grid">
+              {/* Row 1, Box 1: Stage 01 */}
+              <div className="math-stage-box">
+                <div className="math-stage-header">
+                  <span className="stage-pill pill-stage-cyan">Stage 01</span>
+                  <span className="stage-meta-tag">H3 Discrete Spatial Quantization</span>
+                </div>
+                <h3 className="math-stage-title">Spatial Clustering &amp; Binning</h3>
+                <p className="math-stage-desc">
+                  Every detection coordinate <TeX math="d = (\phi, \lambda)" /> is mapped into an Uber H3 Resolution-7 discrete hexagon
+                  (<TeX math="\approx 5.16\,\text{km}^2" />). Detections are binned by the composite key <TeX math="(h, \text{day}, \text{satellite})" />.
+                  All VIIRS detections falling within cell <TeX math="h" /> during a single satellite pass are aggregated to match MODIS footprint scales:
+                </p>
+                <div className="katex-equation-container">
+                  <TeX
+                    math="h = \text{latLngToCell}(\phi, \lambda, 7)"
+                    display={true}
+                  />
+                  <TeX
+                    math="\text{FRP}_{h, d, s} = \sum_{i \in (h, d, s)} \text{FRP}_i, \quad n_{h, d, s} = |\{i \in (h, d, s)\}|"
+                    display={true}
+                  />
+                </div>
               </div>
 
-              <div className="stage-step-card">
-                <span className="stage-badge">Stage 02</span>
-                <h4>Cell-Integrated Energy Floor</h4>
-                <p>Enforces a 2.0 MW cutoff on the aggregated cell total FRP rather than individual pixels to conserve fragmented fire energy.</p>
-                <code className="infotip-formula mono">{"Σ FRP_cell >= 2.0 MW"}</code>
+              {/* Row 1, Box 2: Stage 02 */}
+              <div className="math-stage-box">
+                <div className="math-stage-header">
+                  <span className="stage-pill pill-stage-amber">Stage 02</span>
+                  <span className="stage-meta-tag">Cell-Integrated Sensitivity Floor</span>
+                </div>
+                <h3 className="math-stage-title">Radiative Energy Floor Cutoff</h3>
+                <p className="math-stage-desc">
+                  Filtering individual VIIRS pixels at 2.0 MW would incorrectly drop small fragments belonging to large ongoing fires.
+                  Instead, the calibrated threshold <TeX math="C_{\text{VIIRS}} = 2.0\,\text{MW}" /> is enforced strictly on the integrated cell total:
+                </p>
+                <div className="katex-equation-container">
+                  <TeX
+                    math="\text{Keep Cell } (h, d, s) \iff \begin{cases} \text{FRP}_{h, d, s} \ge 2.0\,\text{MW} & \text{if } s \in \text{VIIRS} \\ \text{true} & \text{if } s \in \text{MODIS} \end{cases}"
+                    display={true}
+                  />
+                </div>
               </div>
 
-              <div className="stage-step-card">
-                <span className="stage-badge">Stage 03</span>
-                <h4>Active Overpass Weighting</h4>
-                <p>Divides total aggregated FRP by the number of operational satellites providing valid observations during that week.</p>
-                <code className="infotip-formula mono">{"Index = Σ(FRP_cell) / N_active"}</code>
+              {/* Row 2, Box 1: Stage 03 */}
+              <div className="math-stage-box">
+                <div className="math-stage-header">
+                  <span className="stage-pill pill-stage-emerald">Stage 03</span>
+                  <span className="stage-meta-tag">Constellation Overpass Weighting</span>
+                </div>
+                <h3 className="math-stage-title">Active Overpass Effort Normalization</h3>
+                <p className="math-stage-desc">
+                  The weekly harmonized index <TeX math="I(y, w)" /> normalizes the sum of valid cell FRP by the count of operational satellites
+                  <TeX math="N_{\text{active}}(y, w)" /> dynamically verified in <code>public/data/manifest.json</code>:
+                </p>
+                <div className="katex-equation-container">
+                  <TeX
+                    math="I(y, w) = \frac{\sum_{h, d, s} \text{FRP}_{h, d, s}}{N_{\text{active}}(y, w)}"
+                    display={true}
+                  />
+                </div>
               </div>
 
-              <div className="stage-step-card">
-                <span className="stage-badge">Stage 04</span>
-                <h4>Multi-Decadal Z-Score</h4>
-                <p>Standardizes each calendar week against its 26-year historical seasonal mean and standard deviation.</p>
-                <code className="infotip-formula mono">{"Z = (Index - μ_w) / σ_w"}</code>
+              {/* Row 2, Box 2: Stage 04 */}
+              <div className="math-stage-box">
+                <div className="math-stage-header">
+                  <span className="stage-pill pill-stage-purple">Stage 04</span>
+                  <span className="stage-meta-tag">Multi-Decadal Baseline Anomaly</span>
+                </div>
+                <h3 className="math-stage-title">Weekly Seasonal Z-Score Standardization</h3>
+                <p className="math-stage-desc">
+                  Agricultural residue burning and wildfire cycles exhibit strong seasonality. To isolate true statistical anomalies from expected annual cycles,
+                  each week is standardized against its 26-year empirical distribution for that calendar week:
+                </p>
+                <div className="katex-equation-container">
+                  <TeX
+                    math="Z(y, w) = \frac{I(y, w) - \mu_w}{\sigma_w}, \quad \mu_w = \frac{1}{|Y_w|}\sum_{y \in Y_w} I(y, w)"
+                    display={true}
+                  />
+                </div>
+                <p style={{ color: "var(--text-secondary)", fontSize: 12, marginTop: 10 }}>
+                  Weeks where <TeX math="Z \ge +2.0\sigma" /> represent extreme ecological breakout events (e.g. 2018 Camp Fire, 2016 Punjab peak).
+                </p>
               </div>
-            </div>
-
-            <div className="math-card">
-              <h3>Stage 1 Mathematical Definition: Discrete Spatial Quantization</h3>
-              <p>
-                Every detection coordinate <code>d = (φ, λ)</code> is assigned to an H3 resolution-7 cell <code>h = latLngToCell(φ, λ, 7)</code>.
-                Detections are binned by the composite key <code>(h, day, satellite)</code>. All VIIRS detections falling within cell <code>h</code> on the
-                same satellite overpass are aggregated:
-              </p>
-              <div className="formula-block mono">
-                {"FRP_{h, d, s} = \\sum_{i \\in (h, d, s)} FRP_i, \\quad n_{h, d, s} = |\\{i \\in (h, d, s)\\}|"}
-              </div>
-            </div>
-
-            <div className="math-card">
-              <h3>Stage 2 Mathematical Definition: Cell-Integrated FRP Cutoff</h3>
-              <p>
-                Filtering individual VIIRS pixels at 2.0 MW would incorrectly drop small fragments belonging to large ongoing fires.
-                Instead, the threshold <code>{"C_VIIRS = 2.0 MW"}</code> is enforced on the integrated cell total:
-              </p>
-              <div className="formula-block mono">
-                {"Keep cell if: (s \\in VIIRS \\implies FRP_{h, d, s} \\ge 2.0 MW) \\land (s \\in MODIS \\implies true)"}
-              </div>
-            </div>
-
-            <div className="math-card">
-              <h3>Stage 3 Mathematical Definition: Overpass Effort Normalization</h3>
-              <p>
-                The weekly harmonized index <code>{"I(y, w)"}</code> normalizes the sum of valid cell FRP by the count of operational satellites
-                <code>{"N_active(y, w)"}</code> verified in <code>public/data/manifest.json</code>:
-              </p>
-              <div className="formula-block mono">
-                {"I(y, w) = \\frac{\\sum_{h, d, s} FRP_{h, d, s}}{N_{active}(y, w)}"}
-              </div>
-            </div>
-
-            <div className="math-card">
-              <h3>Stage 4 Mathematical Definition: Weekly Anomaly Standardization</h3>
-              <p>
-                Agricultural residue burning and Mediterranean wildfire cycles exhibit strong seasonality. To isolate true statistical
-                anomalies from expected annual cycles, each week is standardized against its 26-year empirical distribution:
-              </p>
-              <div className="formula-block mono">
-                {"Z(y, w) = \frac{I(y, w) - \mu_w}{\sigma_w}, \quad \mu_w = \frac{1}{|Y_w|}\sum_{y \in Y_w} I(y, w)"}
-              </div>
-              <p style={{ color: "var(--text-secondary)", fontSize: 12 }}>
-                Weeks where $Z \ge +2.0\sigma$ represent extreme ecological breakout events (e.g. 2018 Camp Fire, 2016 Punjab peak).
-              </p>
             </div>
           </article>
         )}
@@ -548,8 +578,8 @@ export default function ProductLanding({ onLaunchWorkbench }: ProductLandingProp
                 <span>Harmonized Index Ratio</span>
                 <span style={{ color: "var(--green)", fontWeight: 700 }}>1.00 ± 0.08 (Exact Energy Conservation)</span>
               </div>
-              <p style={{ color: "var(--text-secondary)", fontSize: 12 }}>
-                Verified on every code commit via Vitest: tests assert that <code>{"I_VIIRS / I_MODIS"}</code> falls strictly within [0.92, 1.08].
+              <p style={{ color: "var(--text-secondary)", fontSize: 13, marginTop: 12 }}>
+                Verified on every code commit via Vitest: automated assertions confirm that <TeX math="I_{\text{VIIRS}} / I_{\text{MODIS}} \in [0.92, 1.08]" />.
               </p>
             </div>
 
