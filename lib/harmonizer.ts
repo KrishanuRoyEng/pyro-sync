@@ -93,14 +93,69 @@ export function zScores(matrix: (number | null)[][]): (number | null)[][] {
 
 export type Regime = "AGRI-BURN" | "WILDFIRE-FRONT" | "STATIC-FLARE" | "BACKGROUND";
 
-/** Deterministic rule-based tagging of a week's hex set. */
+export interface RegimeDetails {
+  regime: Regime;
+  contiguityPct: number;
+  meanFrp: number;
+  totalFrp: number;
+  cellCount: number;
+  description: string;
+}
+
+/** Deterministic rule-based tagging of a week's hex set into physical fire regimes. */
 export function classifyRegime(hexes: HexCell[]): Regime {
   if (!hexes.length) return "BACKGROUND";
   if (hexes.length === 1 && hexes[0].count >= 1) return "STATIC-FLARE";
   const set = new Set(hexes.map((h) => h.hex));
   const contiguous = hexes.filter((h) => gridDisk(h.hex, 1).some((n) => n !== h.hex && set.has(n))).length;
-  const contig = contiguous / hexes.length;
+  const contig = hexes.length > 0 ? contiguous / hexes.length : 0;
   const meanFrp = hexes.reduce((a, h) => a + h.frp, 0) / hexes.length;
   if (meanFrp > 40 && contig > 0.5) return "WILDFIRE-FRONT";
   return meanFrp < 15 ? "AGRI-BURN" : contig > 0.5 ? "WILDFIRE-FRONT" : "AGRI-BURN";
+}
+
+/** Detailed diagnostic breakdown for the regime classification with spatial metrics. */
+export function classifyRegimeDetails(hexes: HexCell[]): RegimeDetails {
+  const regime = classifyRegime(hexes);
+  if (!hexes.length) {
+    return {
+      regime: "BACKGROUND",
+      contiguityPct: 0,
+      meanFrp: 0,
+      totalFrp: 0,
+      cellCount: 0,
+      description: "Nominal thermal baseline — zero sustained active fire clusters.",
+    };
+  }
+  const set = new Set(hexes.map((h) => h.hex));
+  const contiguous = hexes.filter((h) => gridDisk(h.hex, 1).some((n) => n !== h.hex && set.has(n))).length;
+  const contig = hexes.length > 0 ? (contiguous / hexes.length) * 100 : 0;
+  const totalFrp = hexes.reduce((a, h) => a + h.frp, 0);
+  const meanFrp = totalFrp / hexes.length;
+
+  let description = "";
+  switch (regime) {
+    case "WILDFIRE-FRONT":
+      description = `High-intensity coherent front (${contig.toFixed(0)}% contiguous hexes, mean ${meanFrp.toFixed(1)} MW/cell).`;
+      break;
+    case "AGRI-BURN":
+      description = `Dispersed agricultural burning (${contig.toFixed(0)}% contiguous, mean ${meanFrp.toFixed(1)} MW/cell).`;
+      break;
+    case "STATIC-FLARE":
+      description = `Isolated point source / gas flare (${hexes[0].count} persistent detections in 1 cell).`;
+      break;
+    case "BACKGROUND":
+    default:
+      description = "Nominal thermal baseline.";
+      break;
+  }
+
+  return {
+    regime,
+    contiguityPct: contig,
+    meanFrp,
+    totalFrp,
+    cellCount: hexes.length,
+    description,
+  };
 }

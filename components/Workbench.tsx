@@ -3,6 +3,8 @@ import dynamic from "next/dynamic";
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import {
   classifyRegime,
+  classifyRegimeDetails,
+  RegimeDetails,
   harmonizeWeek,
   HexCell,
   Params,
@@ -71,7 +73,7 @@ export default function Workbench() {
   const [normalize, setNormalize] = useState(true);
   const [zThr, setZThr] = useState(2);
   const [onlyAnom, setOnlyAnom] = useState(false);
-  const [sel, setSel] = useState({ y: 2010 - YEAR0, w: 43 }); // Default: 2010 Week 44 (fire season)
+  const [sel, setSel] = useState({ y: 2016 - YEAR0, w: 43 }); // Default: 2016 Week 44 (peak fire season with active MODIS + VIIRS)
   const [hex, setHex] = useState<string | null>(null);
 
   // Live mode state
@@ -310,9 +312,13 @@ export default function Workbench() {
   const z = useMemo(() => zScores(value), [value]);
 
   /* ---------- Selected Week Hex Cells & Stats ---------- */
-  const { hexes, regime, stat } = useMemo(() => {
+  const { hexes, regimeDetails, stat } = useMemo(() => {
     if (!regionData) {
-      return { hexes: [] as HexCell[], regime: "BACKGROUND" as const, stat: { raw: 0, index: 0, frp: 0, cells: 0 } };
+      return {
+        hexes: [] as HexCell[],
+        regimeDetails: classifyRegimeDetails([]),
+        stat: { raw: 0, index: 0, frp: 0, cells: 0 },
+      };
     }
 
     // Special World View case: use lazy-loaded H3 res 3 global file if available
@@ -340,7 +346,7 @@ export default function Workbench() {
       const totalFrp = worldHexes.reduce((acc, h) => acc + h.frp, 0);
       return {
         hexes: worldHexes,
-        regime: classifyRegime(worldHexes),
+        regimeDetails: classifyRegimeDetails(worldHexes),
         stat: { raw: totalRaw, index: totalFrp / 2, frp: totalFrp, cells: worldHexes.length },
       };
     }
@@ -349,7 +355,11 @@ export default function Workbench() {
     const dets = regionData.weeks[sel.y]?.[sel.w] ?? [];
     const activeSats = regionData.activeSatellitesMatrix[sel.y]?.[sel.w] ?? [];
     const out = harmonizeWeek(dets, activeSats.length, { ...params, harmonize });
-    return { hexes: out.hexes, regime: classifyRegime(out.hexes), stat: out.stat };
+    return {
+      hexes: out.hexes,
+      regimeDetails: classifyRegimeDetails(out.hexes),
+      stat: out.stat,
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [regionData, globalYearData, sel, region.id, selectedYear, res, dCutoff, normalize, harmonize]);
 
@@ -914,7 +924,8 @@ export default function Workbench() {
                 </p>
               </div>
             ) : (
-              <div className="kv mono">
+              <>
+                <div className="kv mono">
                 <span style={{ display: "inline-flex", alignItems: "center" }}>
                   Observation Period
                   <InfoTip title="Calendar Week" desc="Calendar week of the year (1 to 52). Week 1 starts Jan 1; Week 52 contains remaining days." />
@@ -947,15 +958,85 @@ export default function Workbench() {
                 <span>{stat.index.toFixed(1)} MW</span>
                 <span style={{ display: "inline-flex", alignItems: "center" }}>
                   Fire Regime
-                  <InfoTip title="Fire Regime Classification" desc="Automated classification: BACKGROUND (low baseline), ELEVATED (moderate cluster), or EXTREME (major wildfire outbreak)." />
+                  <InfoTip
+                    title="Physical Fire Regime Tag"
+                    desc="Physics-based deterministic classification based on spatial contiguity (% neighboring burning hexes) and mean FRP intensity per cell."
+                    formula="WILDFIRE: meanFrp > 40MW & contig > 50% | AGRI: meanFrp < 15MW | STATIC: single hex"
+                  />
                 </span>
-                <span className="badge">{regime}</span>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "2px" }}>
+                  <span
+                    className={`badge regime-badge regime-${regimeDetails.regime.toLowerCase()}`}
+                    style={{
+                      fontWeight: 600,
+                      fontSize: "11px",
+                      letterSpacing: "0.03em",
+                      padding: "2px 8px",
+                      borderRadius: "6px",
+                      border: "1px solid",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "5px",
+                      backgroundColor:
+                        regimeDetails.regime === "WILDFIRE-FRONT"
+                          ? "rgba(239, 68, 68, 0.18)"
+                          : regimeDetails.regime === "AGRI-BURN"
+                          ? "rgba(245, 158, 11, 0.18)"
+                          : regimeDetails.regime === "STATIC-FLARE"
+                          ? "rgba(6, 182, 212, 0.18)"
+                          : "rgba(148, 163, 184, 0.15)",
+                      color:
+                        regimeDetails.regime === "WILDFIRE-FRONT"
+                          ? "#fca5a5"
+                          : regimeDetails.regime === "AGRI-BURN"
+                          ? "#fcd34d"
+                          : regimeDetails.regime === "STATIC-FLARE"
+                          ? "#67e8f9"
+                          : "#cbd5e1",
+                      borderColor:
+                        regimeDetails.regime === "WILDFIRE-FRONT"
+                          ? "rgba(239, 68, 68, 0.4)"
+                          : regimeDetails.regime === "AGRI-BURN"
+                          ? "rgba(245, 158, 11, 0.4)"
+                          : regimeDetails.regime === "STATIC-FLARE"
+                          ? "rgba(6, 182, 212, 0.4)"
+                          : "rgba(148, 163, 184, 0.3)",
+                    }}
+                  >
+                    <span>
+                      {regimeDetails.regime === "WILDFIRE-FRONT" && "🔥"}
+                      {regimeDetails.regime === "AGRI-BURN" && "🌾"}
+                      {regimeDetails.regime === "STATIC-FLARE" && "⚡"}
+                      {regimeDetails.regime === "BACKGROUND" && "⚪"}
+                    </span>
+                    {regimeDetails.regime}
+                  </span>
+                  <span style={{ fontSize: "10px", color: "var(--color-muted)", fontFamily: "monospace" }}>
+                    {regimeDetails.contiguityPct.toFixed(0)}% contiguous · {regimeDetails.meanFrp.toFixed(1)} MW/hex
+                  </span>
+                </div>
                 <span style={{ display: "inline-flex", alignItems: "center" }}>
                   Hexagon Filter
                   <InfoTip title="Localized Hexagon Filter" desc="Click any hexagon on the map to filter the matrix and proof charts specifically to that localized cell." />
                 </span>
                 <span>{hex ? hex.slice(0, 11) + "…" : "All cells (click map hex)"}</span>
               </div>
+                <div
+                  style={{
+                    fontSize: "11px",
+                    lineHeight: "1.4",
+                    color: "var(--color-text-subtle)",
+                    marginTop: "6px",
+                    padding: "6px 8px",
+                    background: "rgba(255, 255, 255, 0.02)",
+                    borderRadius: "6px",
+                    border: "1px solid rgba(255, 255, 255, 0.06)",
+                  }}
+                >
+                  <strong style={{ color: "var(--color-text)" }}>Regime Diagnostics: </strong>
+                  {regimeDetails.description}
+                </div>
+              </>
             )}
 
             <h2>
@@ -1006,6 +1087,66 @@ export default function Workbench() {
               onChange={(e) => setCutoff(+e.target.value)}
               style={{ width: "100%", padding: 0 }}
             />
+            {selectedYear >= 2012 ? (
+              <div
+                style={{
+                  fontSize: "11px",
+                  color: "#34d399",
+                  marginTop: "4px",
+                  marginBottom: "8px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                }}
+              >
+                <span
+                  style={{
+                    display: "inline-block",
+                    width: "7px",
+                    height: "7px",
+                    borderRadius: "50%",
+                    background: "#10b981",
+                    boxShadow: "0 0 6px #10b981",
+                    flexShrink: 0,
+                  }}
+                />
+                <span>
+                  VIIRS sensor active in {selectedYear}: Filtering sub-pixel cells &lt; {cutoff.toFixed(1)} MW (
+                  {stat.cells} cells kept)
+                </span>
+              </div>
+            ) : (
+              <div
+                style={{
+                  fontSize: "11px",
+                  color: "#fbbf24",
+                  marginTop: "4px",
+                  marginBottom: "8px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  background: "rgba(245, 158, 11, 0.08)",
+                  padding: "4px 8px",
+                  borderRadius: "4px",
+                  border: "1px solid rgba(245, 158, 11, 0.2)",
+                }}
+              >
+                <span
+                  style={{
+                    display: "inline-block",
+                    width: "7px",
+                    height: "7px",
+                    borderRadius: "50%",
+                    background: "#f59e0b",
+                    flexShrink: 0,
+                  }}
+                />
+                <span>
+                  MODIS Era ({selectedYear}: Terra/Aqua only). VIIRS launched late 2011 — select 2012–2026 on calendar
+                  above to test VIIRS cutoff filter!
+                </span>
+              </div>
+            )}
 
             <div className="row">
               <span style={{ display: "inline-flex", alignItems: "center" }}>
