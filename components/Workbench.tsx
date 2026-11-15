@@ -108,6 +108,9 @@ export default function Workbench() {
   // Mobile navigation tab for small screens (< 900px)
   const [mobileTab, setMobileTab] = useState<"map" | "inspector" | "matrix">("map");
 
+  // Desktop layout focus mode
+  const [focusMode, setFocusMode] = useState<"cockpit" | "map" | "calendar">("cockpit");
+
   const handleSetViewMode = (mode: "workbench" | "product") => {
     setViewMode(mode);
     if (typeof window !== "undefined") {
@@ -466,7 +469,7 @@ export default function Workbench() {
   }
 
   return (
-    <div className={`ws ${isDraggingRow || isDraggingCol ? "resizing" : ""}`}>
+    <div className={`ws ${isDraggingRow || isDraggingCol ? "resizing" : ""} mobile-view-${mobileTab} focus-${focusMode}`}>
       {/* 40px Top Telemetry Bar */}
       <header className="top">
         <strong style={{ letterSpacing: "0.08em" }}>PYRO-SYNC</strong>
@@ -486,6 +489,34 @@ export default function Workbench() {
             title="Product Overview, Methodology & Science Documentation"
           >
             📖 Product &amp; Docs
+          </button>
+        </div>
+
+        {/* Desktop Focus Mode Switcher */}
+        <div className="seg desktop-only" role="group" aria-label="Layout Focus Mode">
+          <button
+            aria-pressed={focusMode === "cockpit"}
+            onClick={() => setFocusMode("cockpit")}
+            style={focusMode === "cockpit" ? { fontWeight: 700, background: "var(--panel-elevated)", color: "var(--text)" } : {}}
+            title="Cockpit: Balanced Map, Telemetry Inspector & Burning Matrix"
+          >
+            Cockpit
+          </button>
+          <button
+            aria-pressed={focusMode === "map"}
+            onClick={() => setFocusMode("map")}
+            style={focusMode === "map" ? { fontWeight: 700, background: "var(--panel-elevated)", color: "var(--text)" } : {}}
+            title="Map Focus: Maximized GeoSpatial View"
+          >
+            Map
+          </button>
+          <button
+            aria-pressed={focusMode === "calendar"}
+            onClick={() => setFocusMode("calendar")}
+            style={focusMode === "calendar" ? { fontWeight: 700, background: "var(--panel-elevated)", color: "var(--text)" } : {}}
+            title="Calendar Focus: Expanded 26-Year Matrix View"
+          >
+            Matrix
           </button>
         </div>
 
@@ -669,7 +700,7 @@ export default function Workbench() {
       </nav>
 
       {/* Middle Pane: Map (left) + Resizer + Inspector Sidebar (right) */}
-      <div className={`middle-pane mobile-view-${mobileTab}`}>
+      <div className="middle-pane">
         <section className="map" aria-label="Map view">
           <MapWorkbench
             hexes={displayHexes}
@@ -1022,9 +1053,16 @@ export default function Workbench() {
 
   {/* Burning Activity Matrix Dock (Resizable & Collapsible) */}
   <section
-    className={`dock mobile-view-${mobileTab}`}
+    className="dock"
     aria-label="Calendar dock"
-    style={{ height: dockCollapsed ? 32 : dockHeight }}
+    style={{
+      height:
+        focusMode === "calendar"
+          ? undefined
+          : dockCollapsed || focusMode === "map"
+          ? 32
+          : dockHeight,
+    }}
   >
         <div className="dock-header">
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>

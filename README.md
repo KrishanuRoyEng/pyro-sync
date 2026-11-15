@@ -23,8 +23,9 @@ npm test && npm run typecheck && npm run build
 3. **Overpass Effort Normalization**: Sum FRP across cells and divide by the number of active satellites operating during that week, balancing the differing orbital overpasses.
 4. **Historical Z-Scores & Regimes**: Standardize each calendar week $w \in [1, 52]$ across historical years ($Z = (x - \mu) / \sigma$). Tag fire regimes deterministically by FRP intensity and spatial hex contiguity (`AGRI-BURN`, `WILDFIRE-FRONT`, `STATIC-FLARE`, `BACKGROUND`).
 
-Week indexing is computed deterministically:
-$$\text{week} = \min\left(52, \left\lfloor \frac{\text{day\_of\_year} - 1}{7} \right\rfloor + 1\right)$$
+Week indexing is computed deterministically from Day of Year (DOY, 1–366):
+
+$$\text{week} = \min\left(52, \left\lfloor \frac{\text{DOY} - 1}{7} \right\rfloor + 1\right)$$
 
 ---
 

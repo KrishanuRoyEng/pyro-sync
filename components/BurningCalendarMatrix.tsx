@@ -39,29 +39,30 @@ export default function BurningCalendarMatrix({
   useEffect(() => {
     const c = ref.current;
     if (!c) return;
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
     const draw = () => {
       const { r, cw, ch } = geom();
+      if (r.width <= 0 || r.height <= 0) return;
       c.width = Math.max(1, r.width * dpr);
       c.height = Math.max(1, r.height * dpr);
       const x = c.getContext("2d");
       if (!x) return;
       x.scale(dpr, dpr);
-      x.fillStyle = "#121417";
+      x.fillStyle = "#10141D";
       x.fillRect(0, 0, r.width, r.height);
-      x.font = "9px 'JetBrains Mono', monospace";
+      x.font = "9.5px 'JetBrains Mono', monospace";
       x.textBaseline = "middle";
 
       z.forEach((row, y) => {
         if (y % 2 === 0) {
-          x.fillStyle = "#8B929C";
+          x.fillStyle = "#94A3B8";
           x.textAlign = "right";
           x.fillText(String(YEAR0 + y), L - 4, T + y * ch + ch / 2);
         }
         row.forEach((v, w) => {
           if (v === null) {
-            // Null weeks (e.g. pre-MODIS launch in 2000): show faint pattern
-            x.fillStyle = "#1A1D24";
+            // Null weeks (e.g. observation gaps or pre-MODIS launch): subtle hatched pattern
+            x.fillStyle = "#181E29";
             x.fillRect(L + w * cw, T + y * ch, Math.max(1, cw - 1), Math.max(1, ch - 1));
             return;
           }
@@ -73,14 +74,14 @@ export default function BurningCalendarMatrix({
       });
 
       x.globalAlpha = 1;
-      x.fillStyle = "#8B929C";
+      x.fillStyle = "#94A3B8";
       x.textAlign = "left";
       for (let w = 0; w < 52; w += 4) {
         x.fillText(`W${w + 1}`, L + w * cw, 6);
       }
 
       // Selection indicator
-      x.strokeStyle = "#F3F4F6";
+      x.strokeStyle = "#F8FAFC";
       x.lineWidth = 1.5;
       x.strokeRect(L + selected.w * cw - 0.5, T + selected.y * ch - 0.5, cw + 1, ch + 1);
     };
@@ -88,13 +89,26 @@ export default function BurningCalendarMatrix({
     draw();
     const ro = new ResizeObserver(draw);
     ro.observe(c);
-    return () => ro.disconnect();
+    window.addEventListener("resize", draw);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", draw);
+    };
   }, [z, selected, threshold, onlyAnomalies, geom]);
 
   const at = (e: React.MouseEvent) => {
     const { r, cw, ch } = geom();
     const w = Math.floor((e.clientX - r.left - L) / cw);
     const y = Math.floor((e.clientY - r.top - T) / ch);
+    return w >= 0 && w < 52 && y >= 0 && y < z.length && z[y][w] !== null ? { y, w } : null;
+  };
+
+  const touchAt = (e: React.TouchEvent) => {
+    if (!e.touches || e.touches.length === 0) return null;
+    const touch = e.touches[0];
+    const { r, cw, ch } = geom();
+    const w = Math.floor((touch.clientX - r.left - L) / cw);
+    const y = Math.floor((touch.clientY - r.top - T) / ch);
     return w >= 0 && w < 52 && y >= 0 && y < z.length && z[y][w] !== null ? { y, w } : null;
   };
 
@@ -142,6 +156,20 @@ export default function BurningCalendarMatrix({
           const p = at(e);
           if (p) onSelect(p.y, p.w);
         }}
+        onTouchStart={(e) => {
+          const p = touchAt(e);
+          if (p) {
+            setHover(p);
+            onSelect(p.y, p.w);
+          }
+        }}
+        onTouchMove={(e) => {
+          const p = touchAt(e);
+          if (p) {
+            setHover(p);
+            onSelect(p.y, p.w);
+          }
+        }}
       />
       <div
         className="mono"
@@ -151,14 +179,21 @@ export default function BurningCalendarMatrix({
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          fontSize: 11.5,
         }}
       >
         <span>
-          {YEAR0 + h.y} W{h.w + 1} &nbsp; value {vv == null ? "—" : vv.toFixed(1)} &nbsp; Z{" "}
-          {zv == null ? "—" : (zv >= 0 ? "+" : "") + zv.toFixed(2)}σ
+          <strong style={{ color: "#FFF" }}>{YEAR0 + h.y} W{h.w + 1}</strong> &nbsp;
+          <span>Harmonized FRP: {vv == null ? "—" : vv.toFixed(1)} MW</span> &nbsp;
+          <span>
+            Z-Score:{" "}
+            <span style={{ color: zv != null && zv >= threshold ? "var(--red)" : "var(--amber)", fontWeight: 700 }}>
+              {zv == null ? "—" : (zv >= 0 ? "+" : "") + zv.toFixed(2)}σ
+            </span>
+          </span>
         </span>
         <span style={{ fontSize: 10, color: "var(--dim)" }}>
-          Keyboard: Arrow keys to navigate weeks &amp; years
+          Touch or Arrow keys to select week
         </span>
       </div>
     </>
