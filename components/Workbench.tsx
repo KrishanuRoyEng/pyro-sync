@@ -95,15 +95,14 @@ export default function Workbench() {
   const [demoStep, setDemoStep] = useState<number | null>(null);
 
   // View mode: interactive Workbench vs Product Overview & Docs
-  const [viewMode, setViewMode] = useState<"workbench" | "product">(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get("view") === "product" || window.location.hash === "#product") {
-        return "product";
-      }
+  const [viewMode, setViewMode] = useState<"workbench" | "product">("workbench");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("view") === "product" || window.location.hash === "#product") {
+      setViewMode("product");
     }
-    return "workbench";
-  });
+  }, []);
 
   // Mobile navigation tab for small screens (< 900px)
   const [mobileTab, setMobileTab] = useState<"map" | "inspector" | "matrix">("map");

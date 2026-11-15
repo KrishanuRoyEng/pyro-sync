@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 interface ProductLandingProps {
   onLaunchWorkbench: (regionIndex?: number, live?: boolean) => void;
@@ -8,16 +8,15 @@ interface ProductLandingProps {
 export default function ProductLanding({ onLaunchWorkbench }: ProductLandingProps) {
   const [activeTab, setActiveTab] = useState<
     "physics" | "paradox" | "pipeline" | "benchmarks" | "validation" | "engineering"
-  >(() => {
-    if (typeof window !== "undefined") {
-      const p = new URLSearchParams(window.location.search);
-      const t = p.get("tab");
-      if (t && ["physics", "paradox", "pipeline", "benchmarks", "validation", "engineering"].includes(t)) {
-        return t as any;
-      }
+  >("physics");
+
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const t = p.get("tab");
+    if (t && ["physics", "paradox", "pipeline", "benchmarks", "validation", "engineering"].includes(t)) {
+      setActiveTab(t as any);
     }
-    return "physics";
-  });
+  }, []);
 
   return (
     <div className="product-page-wrapper">
